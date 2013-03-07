@@ -15,6 +15,13 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
 		$_SERVER['PHPUNIT'] = true;
 	}
+	protected function assertOutputSame($expected, $callback, $message = '') {
+	    ob_start();
+	    call_user_func($callback);
+	    $out = ob_get_contents();
+	    ob_end_clean();
+	    $this->assertSame($expected, $out, $message);
+	}
 
 	public function testBasic() {
 		$this->expectOutputString( 'x' );
@@ -234,6 +241,18 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
 		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
 		Klein\dispatch("/category1/categoryX/ABCD_E");
+	}
+
+	public function testNSDispatch() {
+		Klein\with('/u', function () {
+			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
+			Klein\respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
+		});
+
+		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u");});
+		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u/");});
+		$this->assertOutputSame("id",             function(){Klein\dispatch("/u/35");});
+		$this->assertOutputSame("HTTP/1.1 404\n", function(){Klein\dispatch("/35");});
 	}
 
 }
