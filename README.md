@@ -1,3 +1,14 @@
+#Notice
+This is my personal fork of [klein.php](https://github.com/chriso/klein.php)
+
+It is intended to be a replacement for ```klein.php```, with some enhanced features (see differences below). Also it will soon feature an *optional* extension, with new features.
+
+Differences from the upstream project:
+
+* Namespace: so it won't pollute global variables. This means you'll have to call `Klein\repond()` instead of `respond`.
+* Integrates feature *reverse routing* (see the doc below)
+
+
 **klein.php** is a lightning fast router for PHP 5.3+
 
 * Flexible regular expression routing (inspired by [Sinatra](http://www.sinatrarb.com/))
@@ -17,7 +28,7 @@
 
 ```php
 <?php
-respond(function () {
+Klein\respond(function () {
     echo 'Hello World!';
 });
 ```
@@ -26,7 +37,7 @@ respond(function () {
 
 ```php
 <?php
-respond('/[:name]', function ($request) {
+Klein\respond('/[:name]', function ($request) {
     echo 'Hello ' . $request->name;
 });
 ```
@@ -35,16 +46,16 @@ respond('/[:name]', function ($request) {
 
 ```php
 <?php
-respond('GET', '/posts', $callback);
-respond('POST', '/posts/create', $callback);
-respond('PUT', '/posts/[i:id]', $callback);
-respond('DELETE', '/posts/[i:id]', $callback);
+Klein\respond('GET', '/posts', $callback);
+Klein\respond('POST', '/posts/create', $callback);
+Klein\respond('PUT', '/posts/[i:id]', $callback);
+Klein\respond('DELETE', '/posts/[i:id]', $callback);
 
 // To match multiple request methods:
-respond(array('POST','GET'), $route, $callback);
+Klein\respond(array('POST','GET'), $route, $callback);
 
-// Or you might want to handle the requests in the same place
-respond('/posts/[create|edit:action]?/[i:id]?', function ($request, $response) {
+// Or you might want to handle the requests in thwe same place
+Klein\respond('/posts/[create|edit:action]?/[i:id]?', function ($request, $response) {
     switch ($request->action) {
         //
     }
@@ -55,7 +66,7 @@ respond('/posts/[create|edit:action]?/[i:id]?', function ($request, $response) {
 
 ```php
 <?php
-respond(function ($request, $response) {
+Klein\respond(function ($request, $response) {
     $response->xml = function ($object) {
         // Custom xml output function
     }
@@ -64,13 +75,13 @@ respond(function ($request, $response) {
     }
 });
 
-respond('/report.[xml|csv|json:format]?', function ($reqest, $response) {
+Klein\respond('/report.[xml|csv|json:format]?', function ($reqest, $response) {
     // Get the format or fallback to JSON as the default
     $send = $request->param('format', 'json');
     $response->$send($report);
 });
 
-respond('/report/latest', function ($request, $response) {
+Klein\respond('/report/latest', function ($request, $response) {
     $response->file('/tmp/cached_report.zip');
 });
 ```
@@ -79,7 +90,7 @@ respond('/report/latest', function ($request, $response) {
 
 ```php
 <?php
-respond(function ($request, $response, $app) {
+Klein\respond(function ($request, $response, $app) {
     // Handle exceptions => flash the message and redirect to the referrer
     $response->onError(function ($response, $err_msg) {
         $response->flash($err_msg);
@@ -95,7 +106,7 @@ respond(function ($request, $response, $app) {
     });
 });
 
-respond('POST', '/users/[i:id]/edit', function ($request, $response) {
+Klein\respond('POST', '/users/[i:id]/edit', function ($request, $response) {
     // Quickly validate input parameters
     $request->validate('username', 'Please enter a valid username')->isLen(5, 64)->isChars('a-zA-Z0-9-');
     $request->validate('password')->notNull();
@@ -122,11 +133,11 @@ Some routes can have a *name*, so URL can be generated from the respond route.
 ```php
 <?php
 
-respond('home',       'GET|POST', '/', function(){});
-respond(              'GET',      '/users/', function(){});
-respond('users_show', 'GET',      '/users/[i:id]', function(){});
-respond('user_do',    'POST',     '/users/[i:id]/[delete|update:action]', function(){});
-respond('posts_do',   'GET',      '/posts/[create|edit:action]?/[i:id]?', function(){});
+Klein\respond('home',       'GET|POST', '/', function(){});
+Klein\respond(              'GET',      '/users/', function(){});
+Klein\respond('users_show', 'GET',      '/users/[i:id]', function(){});
+Klein\respond('user_do',    'POST',     '/users/[i:id]/[delete|update:action]', function(){});
+Klein\respond('posts_do',   'GET',      '/posts/[create|edit:action]?/[i:id]?', function(){});
 ```
 
 *Example* - Generating URL for immediate consumption
@@ -134,12 +145,12 @@ respond('posts_do',   'GET',      '/posts/[create|edit:action]?/[i:id]?', functi
 ```php
 <?php
 
-getUrl('home');                                            // "/"
-getUrl('users_show', array('id' => 14));                   // "/users/14"
-getUrl('user_do', array('id' => 17, 'action'=>'delete'));  // "/users/17/delete"
-getUrl('user_do', array('id' => 17));                      // Exception "Param 'action' not set for route 'user_do'"
-getUrl('posts_do', array('id' => 16));                     // "/posts/16" (note that it isn't /posts//16)
-getUrl('posts_do', array('action' => 'edit', 'id' => 15)); // "/posts/edit/15"
+Klein\getUrl('home');                                            // "/"
+Klein\getUrl('users_show', array('id' => 14));                   // "/users/14"
+Klein\getUrl('user_do', array('id' => 17, 'action'=>'delete'));  // "/users/17/delete"
+Klein\getUrl('user_do', array('id' => 17));                      // Exception "Param 'action' not set for route 'user_do'"
+Klein\getUrl('posts_do', array('id' => 16));                     // "/posts/16" (note that it isn't /posts//16)
+Klein\getUrl('posts_do', array('action' => 'edit', 'id' => 15)); // "/posts/edit/15"
 ```
 
 *Example* - Generating URL for later use (placeholder mode)
@@ -149,10 +160,10 @@ To activate this mode, use getUrl with a new last parameter set to 'true'
 ```php
 <?php
 
-getUrl('users_show', array(), true);                            // "/users/[:id]"
-getUrl('users_show', true);                                     // "/users/[:id]" (shorter notation)
-getUrl('posts_do', array('id' => 15), true);                    // "/posts/[:action]/15"
-getUrl('posts_do', array('action' => "edit"), true);            // "/posts/edit/[:id]"
+Klein\getUrl('users_show', array(), true);                            // "/users/[:id]"
+Klein\getUrl('users_show', true);                                     // "/users/[:id]" (shorter notation)
+Klein\getUrl('posts_do', array('id' => 15), true);                    // "/posts/[:action]/15"
+Klein\getUrl('posts_do', array('action' => "edit"), true);            // "/posts/edit/[:id]"
 ```
 
 
@@ -160,13 +171,13 @@ getUrl('posts_do', array('action' => "edit"), true);            // "/posts/edit/
 
 ```php
 <?php
-with('/users', function () {
+Klein\with('/users', function () {
 
-    respond('GET', '/?', function ($request, $response) {
+    Klein\respond('GET', '/?', function ($request, $response) {
         // Show all users
     });
 
-    respond('GET', '/[:id]', function ($request, $response) {
+    Klein\respond('GET', '/[:id]', function ($request, $response) {
         // Show a single user
     });
 
@@ -184,7 +195,7 @@ first use.
 
 ``` php
 <?php
-respond(function ($request, $response, $app) {
+Klein\respond(function ($request, $response, $app) {
     $app->register('lazyDb', function() {
         $db = new stdClass();
         $db->name = 'foo';
@@ -194,7 +205,7 @@ respond(function ($request, $response, $app) {
 
 //Later
 
-respond('GET', '/posts', function ($request, $response, $app) {
+Klein\respond('GET', '/posts', function ($request, $response, $app) {
     // $db is initialised on first request
     // all subsequent calls will use the same instance
     echo $app->lazyDb->name;
@@ -207,7 +218,7 @@ To add a custom validator use `addValidator($method, $callback)`
 
 ```php
 <?php
-addValidator('hex', function ($str) {
+Klein\addValidator('hex', function ($str) {
     return preg_match('/^[0-9a-f]++$/i', $str);
 });
 ```
@@ -254,9 +265,9 @@ authentication or view layouts. e.g. as a basic example, the following
 code will wrap other routes with a header and footer
 
 ```php
-respond('*', function ($request, $response) { $response->render('header.phtml'; });
+Klein\respond('*', function ($request, $response) { $response->render('header.phtml'; });
 //other routes
-respond('*', function ($request, $response) { $response->render('footer.phtml'; });
+Klein\respond('*', function ($request, $response) { $response->render('footer.phtml'; });
 ```
 
 Routes automatically match the entire request URI. If you need to match
@@ -265,10 +276,10 @@ negate a route, use the `!` operator
 
 ```php
 // Match all requests that end with '.json' or '.csv'
-respond('@\.(json|csv)$', ...
+Klein\respond('@\.(json|csv)$', ...
 
 // Match all requests that _don't_ start with /admin
-respond('!@^/admin/', ...
+Klein\respond('!@^/admin/', ...
 ```
 
 ## Views
@@ -400,3 +411,4 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
