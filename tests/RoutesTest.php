@@ -334,4 +334,5 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		$this->assertContains( 'GET', $resultArray );
 		$this->assertContains( 'POST', $resultArray );
 	}
+
 }
