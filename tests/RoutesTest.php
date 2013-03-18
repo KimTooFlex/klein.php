@@ -253,19 +253,6 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		Klein\dispatch("/category1/categoryX/ABCD_E");
 	}
 
-	public function testNSDispatch() {
-		Klein\with('/u', function () {
-			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
-			Klein\respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
-		});
-		Klein\respond( 404, function(){ echo "404"; } );
-
-		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u");});
-		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u/");});
-		$this->assertOutputSame("id",             function(){Klein\dispatch("/u/35");});
-		$this->assertOutputSame("404",            function(){Klein\dispatch("/35");});
-	}
-
 	public function testMethodCatchAll() {
 		$this->expectOutputString( 'yup!123' );
 
@@ -333,6 +320,19 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		$this->assertCount( 2, $resultArray );
 		$this->assertContains( 'GET', $resultArray );
 		$this->assertContains( 'POST', $resultArray );
+	}
+
+	public function testNSDispatch() {
+		Klein\with('/u', function () {
+			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
+			Klein\respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
+		});
+		Klein\respond( 404, function(){ echo "404"; } );
+
+		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u");});
+		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u/");});
+		$this->assertOutputSame("id",             function(){Klein\dispatch("/u/35");});
+		$this->assertOutputSame("404",            function(){Klein\dispatch("/35");});
 	}
 
 }
