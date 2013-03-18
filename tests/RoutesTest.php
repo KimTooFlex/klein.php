@@ -22,6 +22,13 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 	    ob_end_clean();
 	    $this->assertSame($expected, $out, $message);
 	}
+	protected function assertOutputContains($expected, $callback, $message = '') {
+	    ob_start();
+	    call_user_func($callback);
+	    $out = ob_get_contents();
+	    ob_end_clean();
+	    $this->assertContains($expected, $out, $message);
+	}
 
 	public function testBasic() {
 		$this->expectOutputString( 'x' );
@@ -67,8 +74,10 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 	}
 
 	public function testCatchallImplicitTriggers404() {
-		$this->expectOutputString( "bHTTP/1.1 404\n" );
+		$this->expectOutputString("b404\n");
+
 		Klein\respond( function(){ echo 'b'; });
+		Klein\respond( 404, function(){ echo "404\n"; } );
 		Klein\dispatch( '/' );
 	}
 
@@ -87,9 +96,10 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 	}
 
 	public function test404() {
-		$this->expectOutputString("HTTP/1.1 404\n");
+		$this->expectOutputString("404\n");
 
 		Klein\respond( '/', function(){ echo 'a'; } );
+		Klein\respond( 404, function(){ echo "404\n"; } );
 		Klein\dispatch( '/foo' );
 	}
 
@@ -248,11 +258,80 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
 			Klein\respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
 		});
+		Klein\respond( 404, function(){ echo "404"; } );
 
 		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u");});
 		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u/");});
 		$this->assertOutputSame("id",             function(){Klein\dispatch("/u/35");});
-		$this->assertOutputSame("HTTP/1.1 404\n", function(){Klein\dispatch("/35");});
+		$this->assertOutputSame("404",            function(){Klein\dispatch("/35");});
 	}
 
+	public function testMethodCatchAll() {
+		$this->expectOutputString( 'yup!123' );
+
+		Klein\respond( 'POST', null, function($request){ echo 'yup!'; });
+		Klein\respond( 'POST', '*', function($request){ echo '1'; });
+		Klein\respond( 'POST', '/', function($request){ echo '2'; });
+		Klein\respond( function($request){ echo '3'; });
+		Klein\dispatch( '/', 'POST' );
+	}
+
+	public function testLazyTrailingMatch() {
+		$this->expectOutputString( 'this-is-a-title-123' );
+
+		Klein\respond( '/posts/[*:title][i:id]', function($request){
+			echo $request->param('title')
+				. $request->param('id');
+		});
+		Klein\dispatch( '/posts/this-is-a-title-123' );
+	}
+
+	public function testFormatMatch() {
+		$this->expectOutputString( 'xml' );
+
+		Klein\respond( '/output.[xml|json:format]', function($request){
+			echo $request->param('format');
+		});
+		Klein\dispatch( '/output.xml' );
+	}
+
+	public function testControllerActionStyleRouteMatch() {
+		$this->expectOutputString( 'donkey-kick' );
+
+		Klein\respond( '/[:controller]?/[:action]?', function($request){
+			echo $request->param('controller')
+				. '-' . $request->param('action');
+		});
+		Klein\dispatch( '/donkey/kick' );
+	}
+
+	public function testRespondArgumentOrder() {
+		$this->expectOutputString( 'abcdef' );
+
+		Klein\respond( function(){ echo 'a'; });
+		Klein\respond( null, function(){ echo 'b'; });
+		Klein\respond( '/endpoint', function(){ echo 'c'; });
+		Klein\respond( 'GET', null, function(){ echo 'd'; });
+		Klein\respond( array( 'GET', 'POST' ), null, function(){ echo 'e'; });
+		Klein\respond( array( 'GET', 'POST' ), '/endpoint', function(){ echo 'f'; });
+		Klein\dispatch( '/endpoint' );
+	}
+
+	public function test405Routes() {
+		$resultArray = array();
+
+		$this->expectOutputString( '_' );
+
+		Klein\respond( function(){ echo '_'; });
+		Klein\respond( 'GET', null, function(){ echo 'fail'; });
+		Klein\respond( array( 'GET', 'POST' ), null, function(){ echo 'fail'; });
+		Klein\respond( 405, function($a,$b,$c,$d,$methods) use ( &$resultArray ) {
+			$resultArray = $methods;
+		});
+		Klein\dispatch( '/sure', 'DELETE' );
+
+		$this->assertCount( 2, $resultArray );
+		$this->assertContains( 'GET', $resultArray );
+		$this->assertContains( 'POST', $resultArray );
+	}
 }
