@@ -9,12 +9,14 @@ class TestClass {
 }
 
 class RoutesTest extends PHPUnit_Framework_TestCase {
+
 	protected function setUp() {
 		Klein\reset();
 
 		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
 		$_SERVER['PHPUNIT'] = true;
 	}
+
 	protected function assertOutputSame($expected, $callback, $message = '') {
 	    ob_start();
 	    call_user_func($callback);
@@ -235,24 +237,6 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		echo Klein\getUrl('users', array('id' => "10"));
 	}
 
-	public function testDot1() {
-		$this->expectOutputString( 'matchA:slug=ABCD_E--matchB:slug=ABCD_E--' );
-
-		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
-		Klein\dispatch("/category1/categoryX/ABCD_E.php");
-	}
-
-	public function testDot2() {
-		$this->expectOutputString( 'matchB:slug=ABCD_E--' );
-
-		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
-		Klein\dispatch("/category1/categoryX/ABCD_E");
-	}
-
 	public function testMethodCatchAll() {
 		$this->expectOutputString( 'yup!123' );
 
@@ -321,6 +305,25 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		$this->assertContains( 'GET', $resultArray );
 		$this->assertContains( 'POST', $resultArray );
 	}
+
+	public function testDot1() {
+		$this->expectOutputString( 'matchA:slug=ABCD_E--matchB:slug=ABCD_E--' );
+
+		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
+		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
+		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
+		Klein\dispatch("/category1/categoryX/ABCD_E.php");
+	}
+
+	public function testDot2() {
+		$this->expectOutputString( 'matchB:slug=ABCD_E--' );
+
+		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
+		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
+		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
+		Klein\dispatch("/category1/categoryX/ABCD_E");
+	}
+
 
 	public function testNSDispatch() {
 		Klein\with('/u', function () {
