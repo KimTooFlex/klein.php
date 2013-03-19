@@ -288,6 +288,30 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		Klein\dispatch( '/endpoint' );
 	}
 
+	public function testTrailingMatch() {
+		Klein\respond( '/?[*:trailing]/dog/?', function($request){ echo 'yup'; });
+
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/dog'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/ball/cheese/dog/'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/ball/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('cat/ball/cheese/dog/'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('cat/ball/cheese/dog'); });
+	}
+
+	public function testNSDispatch() {
+		Klein\with('/u', function () {
+			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
+			Klein\respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
+		});
+		Klein\respond(404, function ($request, $response) { echo "404"; });
+
+		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u");});
+		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u/");});
+		$this->assertOutputSame("id",             function(){Klein\dispatch("/u/35");});
+		$this->assertOutputSame("404",             function(){Klein\dispatch("/35");});
+	}
+
 	public function test405Routes() {
 		$resultArray = array();
 
@@ -322,20 +346,6 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
 		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
 		Klein\dispatch("/category1/categoryX/ABCD_E");
-	}
-
-
-	public function testNSDispatch() {
-		Klein\with('/u', function () {
-			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
-			Klein\respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
-		});
-		Klein\respond( 404, function(){ echo "404"; } );
-
-		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u");});
-		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u/");});
-		$this->assertOutputSame("id",             function(){Klein\dispatch("/u/35");});
-		$this->assertOutputSame("404",            function(){Klein\dispatch("/35");});
 	}
 
 }
