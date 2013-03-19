@@ -299,6 +299,15 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('cat/ball/cheese/dog'); });
 	}
 
+	public function testTrailingPossessiveMatch() {
+		respond( '/sub-dir/[**:trailing]', function($request){ echo 'yup'; });
+
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/ball/cheese/dog/'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/ball/cheese/dog'); });
+	}
+
 	public function testNSDispatch() {
 		Klein\with('/u', function () {
 			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
