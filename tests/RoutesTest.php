@@ -128,21 +128,21 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 	}
 
 	public function testParamsAlphaNum() {
-		respond( '/[a:audible]', function($request){ echo $request->param('audible'); });
+		Klein\respond( '/[a:audible]', function($request){ echo $request->param('audible'); });
 
-		$this->assertOutputSame( 'blue42',  function(){ dispatch('/blue42'); });
-		$this->assertOutputSame( '',        function(){ dispatch('/texas-29'); });
-		$this->assertOutputSame( '',        function(){ dispatch('/texas29!'); });
+		$this->assertOutputSame( 'blue42',  function(){ Klein\dispatch('/blue42'); });
+		$this->assertOutputSame( '',        function(){ Klein\dispatch('/texas-29'); });
+		$this->assertOutputSame( '',        function(){ Klein\dispatch('/texas29!'); });
 	}
 
 	public function testParamsHex() {
-		respond( '/[h:hexcolor]', function($request){ echo $request->param('hexcolor'); });
+		Klein\respond( '/[h:hexcolor]', function($request){ echo $request->param('hexcolor'); });
 
-		$this->assertOutputSame( '00f',     function(){ dispatch('/00f'); });
-		$this->assertOutputSame( 'abc123',  function(){ dispatch('/abc123'); });
-		$this->assertOutputSame( '',        function(){ dispatch('/876zih'); });
-		$this->assertOutputSame( '',        function(){ dispatch('/00g'); });
-		$this->assertOutputSame( '',        function(){ dispatch('/hi23'); });
+		$this->assertOutputSame( '00f',     function(){ Klein\dispatch('/00f'); });
+		$this->assertOutputSame( 'abc123',  function(){ Klein\dispatch('/abc123'); });
+		$this->assertOutputSame( '',        function(){ Klein\dispatch('/876zih'); });
+		$this->assertOutputSame( '',        function(){ Klein\dispatch('/00g'); });
+		$this->assertOutputSame( '',        function(){ Klein\dispatch('/hi23'); });
 	}
 
 	public function test404TriggersOnce() {
@@ -284,6 +284,24 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		Klein\dispatch( '/output.xml' );
 	}
 
+	public function testDotSeparator() {
+		$this->expectOutputString( 'matchA:slug=ABCD_E--matchB:slug=ABCD_E--' );
+
+		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
+		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
+		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
+		Klein\dispatch("/category1/categoryX/ABCD_E.php");
+
+		$this->assertOutputSame(
+			'matchA:slug=ABCD_E--matchB:slug=ABCD_E--',
+			function(){Klein\dispatch( '/category1/categoryX/ABCD_E.php' );}
+		);
+		$this->assertOutputSame(
+			'matchB:slug=ABCD_E--',
+			function(){Klein\dispatch( '/category1/categoryX/ABCD_E' );}
+		);
+	}
+
 	public function testControllerActionStyleRouteMatch() {
 		$this->expectOutputString( 'donkey-kick' );
 
@@ -318,12 +336,12 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 	}
 
 	public function testTrailingPossessiveMatch() {
-		respond( '/sub-dir/[**:trailing]', function($request){ echo 'yup'; });
+		Klein\respond( '/sub-dir/[**:trailing]', function($request){ echo 'yup'; });
 
-		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/dog'); });
-		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/cheese/dog'); });
-		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/ball/cheese/dog/'); });
-		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/ball/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/dog'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/ball/cheese/dog/'); });
+		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/ball/cheese/dog'); });
 	}
 
 	public function testNSDispatch() {
@@ -355,24 +373,6 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 		$this->assertCount( 2, $resultArray );
 		$this->assertContains( 'GET', $resultArray );
 		$this->assertContains( 'POST', $resultArray );
-	}
-
-	public function testDot1() {
-		$this->expectOutputString( 'matchA:slug=ABCD_E--matchB:slug=ABCD_E--' );
-
-		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
-		Klein\dispatch("/category1/categoryX/ABCD_E.php");
-	}
-
-	public function testDot2() {
-		$this->expectOutputString( 'matchB:slug=ABCD_E--' );
-
-		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
-		Klein\dispatch("/category1/categoryX/ABCD_E");
 	}
 
 }
