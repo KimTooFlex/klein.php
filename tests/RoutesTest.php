@@ -42,7 +42,7 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 				$route_namespace = '/' . basename( $file, '.php' );
 				$route_namespaces[] = $route_namespace;
 
-				with( $route_namespace, $route_directory . $file );
+				Klein\with( $route_namespace, $route_directory . $file );
 			}
 		}
 
@@ -377,22 +377,22 @@ class RoutesTest extends PHPUnit_Framework_TestCase {
 	public function testNSDispatchExternal() {
 		$ext_namespaces = $this->loadExternalRoutes();
 
-		respond(404, function ($request, $response) { echo "404"; });
+		Klein\respond(404, function ($request, $response) { echo "404"; });
 
 		foreach ( $ext_namespaces as $namespace ) {
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/' ); });
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/testing/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/testing/' ); });
 		}
 	}
 
 	public function testNSDispatchExternalRerequired() {
 		$ext_namespaces = $this->loadExternalRoutes();
 
-		respond(404, function ($request, $response) { echo "404"; });
+		Klein\respond(404, function ($request, $response) { echo "404"; });
 
 		foreach ( $ext_namespaces as $namespace ) {
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/' ); });
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/testing/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/testing/' ); });
 		}
 	}
 
