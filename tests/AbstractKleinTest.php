@@ -11,11 +11,7 @@ require_once dirname(__FILE__) . '/setup.php';
 abstract class AbstractKleinTest extends PHPUnit_Framework_TestCase {
 
 	protected function setUp() {
-		global $__routes;
-		$__routes = array();
-
-		global $__namespace;
-		$__namespace = null;
+		Klein\reset();
 	}
 
 	protected function assertOutputSame($expected, $callback, $message = '') {
@@ -36,7 +32,7 @@ abstract class AbstractKleinTest extends PHPUnit_Framework_TestCase {
 				$route_namespace = '/' . basename( $file, '.php' );
 				$route_namespaces[] = $route_namespace;
 
-				with( $route_namespace, $route_directory . $file );
+				Klein\with( $route_namespace, $route_directory . $file );
 			}
 		}
 
