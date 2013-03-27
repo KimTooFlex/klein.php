@@ -313,7 +313,7 @@ $this->param('myvar')                   // Access request parameters
 echo $this->query(array('page' => 2))   // Modify the current query string
 ```
 
--## API
+## API
 
 ```php
 <?php
