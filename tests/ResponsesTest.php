@@ -28,10 +28,10 @@ class ResponsesTest extends AbstractKleinTest {
 			'uniqid' => uniqid(),
 		);
 
-		respond( '/json', function( $request, $response ) use ( $test_object ) {
+		Klein\respond( '/json', function( $request, $response ) use ( $test_object ) {
 			$response->json( $test_object );
 		});
-		dispatch( '/json' );
+		Klein\dispatch( '/json' );
 
 		// Expect our output to match our json encoded test object
 		$this->expectOutputString(
