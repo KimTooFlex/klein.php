@@ -13,7 +13,7 @@ class ResponsesTest extends AbstractKleinTest {
 		parent::setUp();
 
 		$this->headers = new HeadersSave( $this->header_vals );
-		Klein\_Request::$_headers = Klein\_Response::$_headers = new HeadersSave( $this->header_vals );
+		_Request::$_headers = _Response::$_headers = new HeadersSave( $this->header_vals );
 	}
 
 	public function testJSON() {
@@ -28,10 +28,10 @@ class ResponsesTest extends AbstractKleinTest {
 			'uniqid' => uniqid(),
 		);
 
-		Klein\respond( '/json', function( $request, $response ) use ( $test_object ) {
+		respond( '/json', function( $request, $response ) use ( $test_object ) {
 			$response->json( $test_object );
 		});
-		Klein\dispatch( '/json' );
+		dispatch( '/json' );
 
 		// Expect our output to match our json encoded test object
 		$this->expectOutputString(

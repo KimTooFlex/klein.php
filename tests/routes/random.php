@@ -1,9 +1,9 @@
 <?php
 
-Klein\respond( '/?', function( $request, $response, $app ) {
+respond( '/?', function( $request, $response, $app ) {
 	echo 'yup';
 });
 
-Klein\respond( '/testing/?', function( $request, $response, $app ) {
+respond( '/testing/?', function( $request, $response, $app ) {
 	echo 'yup';
 });

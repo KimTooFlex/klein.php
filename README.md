@@ -3,11 +3,13 @@
 ## Notice
 This is my personal fork of [klein.php](https://github.com/chriso/klein.php)
 
-It is intended to be a replacement for ```klein.php```, with some enhanced features (see differences below).
+It is intended to be an extension for ```klein.php```, with some enhanced features (see differences below).
 
-Differences from the upstream project:
+kleinExt.php provides respondExt(), dispatchExt(), withExt(), getUrlExt() that are the extended version of original respond(), dispatch(), with() and getUrl().
 
-* Namespace: so it won't pollute global variables. This means you'll have to call `Klein\repond()` instead of `respond`, if you want to have access to the original Klein function.
+New feature inside klein.php (not implemented as extension):
+
+* Support for Named route, and URL generating
 
 
 ## New Features:
@@ -15,6 +17,7 @@ Differences from the upstream project:
 ### Base_url
 * Can be used with a prefix (getenv("BASE_URL")).
 Suggested way to use it is to add to your .htaccess:
+
 ```php
 SetEnv BASE_URL         /gbo/candcef
 RewriteBase             /gbo/candcef
@@ -33,10 +36,10 @@ Class auto-instancing, with initialize and before support. Method can be static 
 example :
 
 ```php
-respond("/posts/show", "posts#show")
+respondExt("/posts/show", "posts#show")
 ```
 
-will try to find a class "PostsController", if it is not available, it will ```require``` ```controllers/PostsController.php```.
+will try to find a class "PostsController", if it is not available, it will **require** ```controllers/PostsController.php```.
 The class will be instanced if the action is not static. In that case, kleinExt will look for ```class::getInstance()``` or ```class::getSingleton```. If none of these exist, a new instance will simply be created using new: new class($request, $respond, $application).
 
 The class can extend ```KleinExtController```. In that case, the action can get access to ```$this->_rq``` for the Klein Request, ```$this->_rs``` for the Klein Response and ```$this->_ap``` for the Klein Application objects.
@@ -59,11 +62,11 @@ Some routes can have a *name*, so URL can be generated from the respond route.
 ```php
 <?php
 
-respond('home',       'GET|POST', '/', function(){});
-respond(              'GET',      '/users/', function(){});
-respond('users_show', 'GET',      '/users/[i:id]', function(){});
-respond('user_do',    'POST',     '/users/[i:id]/[delete|update:action]', function(){});
-respond('posts_do',   'GET',      '/posts/[create|edit:action]?/[i:id]?', function(){});
+respondExt('home',       'GET|POST', '/', function(){});
+respondExt(              'GET',      '/users/', function(){});
+respondExt('users_show', 'GET',      '/users/[i:id]', function(){});
+respondExt('user_do',    'POST',     '/users/[i:id]/[delete|update:action]', function(){});
+respondExt('posts_do',   'GET',      '/posts/[create|edit:action]?/[i:id]?', function(){});
 ```
 
 *Example* - Generating URL for immediate consumption
@@ -94,6 +97,7 @@ getUrl('posts_do', array('action' => "edit"), true);            // "/posts/edit/
 
 
 ### View helpers:
+The folowing view helpers are automatically added:
 
 *  $rs->h(): shortcut for htmlspecialchars_decode()
 *  $rs->renderJSON(): exits and render a string/array with a custom http code

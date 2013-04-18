@@ -19,347 +19,245 @@ class RoutesTest extends AbstractKleinTest {
 	public function testBasic() {
 		$this->expectOutputString( 'x' );
 
-		Klein\respond( '/', function(){ echo 'x'; });
-		Klein\respond( '/something', function(){ echo 'y'; });
-		Klein\dispatch( '/' );
+		respond( '/', function(){ echo 'x'; });
+		respond( '/something', function(){ echo 'y'; });
+		dispatch( '/' );
 	}
 
 	public function testCallable() {
 		$this->expectOutputString( 'okok' );
-		Klein\respond( '/', array('TestClass', 'GET'));
-		Klein\respond( '/', 'TestClass::GET');
-		Klein\dispatch( '/' );
+		respond( '/', array('TestClass', 'GET'));
+		respond( '/', 'TestClass::GET');
+		dispatch( '/' );
 	}
 
 	public function testAppReference() {
 		$this->expectOutputString( 'ab' );
-		Klein\respond( '/', function($r, $r ,$a){ $a->state = 'a'; });
-		Klein\respond( '/', function($r, $r ,$a){ $a->state .= 'b'; });
-		Klein\respond( '/', function($r, $r ,$a){ print $a->state; });
-		Klein\dispatch( '/' );
+		respond( '/', function($r, $r ,$a){ $a->state = 'a'; });
+		respond( '/', function($r, $r ,$a){ $a->state .= 'b'; });
+		respond( '/', function($r, $r ,$a){ print $a->state; });
+		dispatch( '/' );
 	}
 
 	public function testCatchallImplicit() {
 		$this->expectOutputString( 'b' );
 
-		Klein\respond( '/one', function(){ echo 'a'; });
-		Klein\respond( function(){ echo 'b'; });
-		Klein\respond( '/two', function(){ } );
-		Klein\respond( '/three', function(){ echo 'c'; } );
-		Klein\dispatch( '/two' );
+		respond( '/one', function(){ echo 'a'; });
+		respond( function(){ echo 'b'; });
+		respond( '/two', function(){ } );
+		respond( '/three', function(){ echo 'c'; } );
+		dispatch( '/two' );
 	}
 
 	public function testCatchallAsterisk() {
 		$this->expectOutputString( 'b' );
 
-		Klein\respond( '/one', function(){ echo 'a'; } );
-		Klein\respond( '*', function(){ echo 'b'; } );
-		Klein\respond( '/two', function(){ } );
-		Klein\respond( '/three', function(){ echo 'c'; } );
-		Klein\dispatch( '/two' );
+		respond( '/one', function(){ echo 'a'; } );
+		respond( '*', function(){ echo 'b'; } );
+		respond( '/two', function(){ } );
+		respond( '/three', function(){ echo 'c'; } );
+		dispatch( '/two' );
 	}
 
 	public function testCatchallImplicitTriggers404() {
 		$this->expectOutputString("b404\n");
 
-		Klein\respond( function(){ echo 'b'; });
-		Klein\respond( 404, function(){ echo "404\n"; } );
-		Klein\dispatch( '/' );
+		respond( function(){ echo 'b'; });
+		respond( 404, function(){ echo "404\n"; } );
+		dispatch( '/' );
 	}
 
 	public function testRegex() {
 		$this->expectOutputString( 'z' );
 
-		Klein\respond( '@/bar', function(){ echo 'z'; });
-		Klein\dispatch( '/bar' );
+		respond( '@/bar', function(){ echo 'z'; });
+		dispatch( '/bar' );
 	}
 
 	public function testRegexNegate() {
 		$this->expectOutputString( "y" );
 
-		Klein\respond( '!@/foo', function(){ echo 'y'; });
-		Klein\dispatch( '/bar' );
+		respond( '!@/foo', function(){ echo 'y'; });
+		dispatch( '/bar' );
 	}
 
 	public function test404() {
 		$this->expectOutputString("404\n");
 
-		Klein\respond( '/', function(){ echo 'a'; } );
-		Klein\respond( 404, function(){ echo "404\n"; } );
-		Klein\dispatch( '/foo' );
+		respond( '/', function(){ echo 'a'; } );
+		respond( 404, function(){ echo "404\n"; } );
+		dispatch( '/foo' );
 	}
 
 	public function testParamsBasic() {
 		$this->expectOutputString( 'blue' );
 
-		Klein\respond( '/[:color]', function($request){ echo $request->param('color'); });
-		Klein\dispatch( '/blue' );
+		respond( '/[:color]', function($request){ echo $request->param('color'); });
+		dispatch( '/blue' );
 	}
 
 	public function testParamsIntegerSuccess() {
 		$this->expectOutputString( "string(3) \"987\"\n" );
 
-		Klein\respond( '/[i:age]', function($request){ var_dump( $request->param('age') ); });
-		Klein\dispatch( '/987' );
+		respond( '/[i:age]', function($request){ var_dump( $request->param('age') ); });
+		dispatch( '/987' );
 	}
 
 	public function testParamsIntegerFail() {
 		$this->expectOutputString( '404 Code' );
 
-		Klein\respond( '/[i:age]', function($request){ var_dump( $request->param('age') ); });
-		Klein\respond( '404', function(){ echo '404 Code'; } );
-		Klein\dispatch( '/blue' );
+		respond( '/[i:age]', function($request){ var_dump( $request->param('age') ); });
+		respond( '404', function(){ echo '404 Code'; } );
+		dispatch( '/blue' );
 	}
 
 	public function testParamsAlphaNum() {
-		Klein\respond( '/[a:audible]', function($request){ echo $request->param('audible'); });
+		respond( '/[a:audible]', function($request){ echo $request->param('audible'); });
 
-		$this->assertOutputSame( 'blue42',  function(){ Klein\dispatch('/blue42'); });
-		$this->assertOutputSame( '',        function(){ Klein\dispatch('/texas-29'); });
-		$this->assertOutputSame( '',        function(){ Klein\dispatch('/texas29!'); });
+		$this->assertOutputSame( 'blue42',  function(){ dispatch('/blue42'); });
+		$this->assertOutputSame( '',        function(){ dispatch('/texas-29'); });
+		$this->assertOutputSame( '',        function(){ dispatch('/texas29!'); });
 	}
 
 	public function testParamsHex() {
-		Klein\respond( '/[h:hexcolor]', function($request){ echo $request->param('hexcolor'); });
+		respond( '/[h:hexcolor]', function($request){ echo $request->param('hexcolor'); });
 
-		$this->assertOutputSame( '00f',     function(){ Klein\dispatch('/00f'); });
-		$this->assertOutputSame( 'abc123',  function(){ Klein\dispatch('/abc123'); });
-		$this->assertOutputSame( '',        function(){ Klein\dispatch('/876zih'); });
-		$this->assertOutputSame( '',        function(){ Klein\dispatch('/00g'); });
-		$this->assertOutputSame( '',        function(){ Klein\dispatch('/hi23'); });
+		$this->assertOutputSame( '00f',     function(){ dispatch('/00f'); });
+		$this->assertOutputSame( 'abc123',  function(){ dispatch('/abc123'); });
+		$this->assertOutputSame( '',        function(){ dispatch('/876zih'); });
+		$this->assertOutputSame( '',        function(){ dispatch('/00g'); });
+		$this->assertOutputSame( '',        function(){ dispatch('/hi23'); });
 	}
 
 	public function test404TriggersOnce() {
 		$this->expectOutputString( 'd404 Code' );
 
-		Klein\respond( function(){ echo "d"; } );
-		Klein\respond( '404', function(){ echo '404 Code'; } );
-		Klein\dispatch( '/notroute' );
-	}
-
-	public function testStarRouteTriggers404() {
-		$this->expectOutputString( 'c404 Code' );
-
-		Klein\respond( '*', function(){ echo 'c'; });
-		Klein\respond( '404', function(){ echo '404 Code'; } );
-		Klein\dispatch( '/notroute' );
-	}
-
-	public function testNullRouteTriggers404() {
-		$this->expectOutputString( 'c404 Code' );
-
-		Klein\respond( function(){ echo 'c'; });
-		Klein\respond( '404', function(){ echo '404 Code'; } );
-		Klein\dispatch( '/notroute' );
-	}
-
-	public function testMethodSingle() {
-		$this->expectOutputString( 'd' );
-
-		Klein\respond( "GET",  "/a", function(){ echo 'd'; });
-		Klein\respond( "POST", "/a", function(){ echo 'e'; });
-		Klein\dispatch( '/a' );
-	}
-
-	public function testMethodMultiple() {
-		$this->expectOutputString( 'd' );
-
-		Klein\respond( array("GET","POST"),  "/a", function(){ echo 'd'; });
-		Klein\dispatch( '/a' );
-	}
-
-	public function testgetUrl() {
-		$expect = "";
-
-		Klein\respond('home', array('GET','POST'),'/', function(){});
-		Klein\respond('GET','/users/', function(){});
-		Klein\respond('users_show', 'GET','/users/[i:id]', function(){});
-		Klein\respond('users_do', 'POST','/users/[i:id]/[delete|update:action]', function(){});
-		Klein\respond('posts_do', 'GET', '/posts/[create|edit:action]?/[i:id]?', function(){});
-
-		echo Klein\getUrl('home'); echo "\n";
-		$expect .= "/" . "\n";
-		echo Klein\getUrl('users_show', array('id' => 14)); echo "\n";
-		$expect .= "/users/14" . "\n";
-		echo Klein\getUrl('users_do', array('id' => 17, 'action'=>'delete')); echo "\n";
-		$expect .= "/users/17/delete" . "\n";
-		echo Klein\getUrl('posts_do', array('id' => 16)); echo "\n";
-		$expect .= "/posts/16" . "\n";
-		echo Klein\getUrl('posts_do', array('action' => 'edit', 'id' => 15)); echo "\n";
-		$expect .= "/posts/edit/15" . "\n";
-		$this->expectOutputString( $expect );
-	}
-
-	public function testOptsParam() {
-		$this->expectOutputString( "action=,id=16" );
-		Klein\respond('users_do', 'GET','/posts/[create|edit:action]?/[i:id]?', function($rq,$rs,$ap){echo "action=".$rq->param("action").",id=".$rq->param("id");});
-
-		Klein\dispatch("/posts/16");
-	}
-
-	public function testgetUrlPlaceHolders() {
-		$expect = "";
-
-		Klein\respond('home', array('GET','POST'),'/', function(){});
-		Klein\respond('GET','/users/', function(){});
-		Klein\respond('users_show', 'GET','/users/[i:id]', function(){});
-		Klein\respond('posts_do', 'GET', '/posts/[create|edit:action]?/[i:id]?', function(){});
-
-		echo Klein\getUrl('home', true); echo "\n";
-		$expect .= "/" . "\n";
-		echo Klein\getUrl('users_show', array('id' => 14), true); echo "\n";
-		$expect .= "/users/14" . "\n";
-		echo Klein\getUrl('users_show', array(), true); echo "\n";
-		$expect .= "/users/[:id]" . "\n";
-		echo Klein\getUrl('users_show', true); echo "\n";
-		$expect .= "/users/[:id]" . "\n";
-		echo Klein\getUrl('posts_do', array('action' => 'edit', 'id' => 15), true); echo "\n";
-		$expect .= "/posts/edit/15" . "\n";
-		echo Klein\getUrl('posts_do', array('id' => 15), true); echo "\n";
-		$expect .= "/posts/[:action]/15" . "\n";
-		echo Klein\getUrl('posts_do', array('action' => "edit"), true); echo "\n";
-		$expect .= "/posts/edit/[:id]" . "\n";
-		$this->expectOutputString( $expect );
-	}
-
-
-	public function testPlaceHoldersException1() {
-		$this->setExpectedException('OutOfRangeException', "does not exist");
-
-		Klein\respond('users', 'GET','/users/[i:id]/[:action]', function(){});
-
-		echo Klein\getUrl('notset');
-	}
-
-	public function testPlaceHoldersException2() {
-		$this->setExpectedException('InvalidArgumentException', "not set for route");
-
-		Klein\respond('users', 'GET','/users/[i:id]/[:action]', function(){});
-
-		echo Klein\getUrl('users', array('id' => "10"));
+		respond( function(){ echo "d"; } );
+		respond( '404', function(){ echo '404 Code'; } );
+		dispatch( '/notroute' );
 	}
 
 	public function testMethodCatchAll() {
 		$this->expectOutputString( 'yup!123' );
 
-		Klein\respond( 'POST', null, function($request){ echo 'yup!'; });
-		Klein\respond( 'POST', '*', function($request){ echo '1'; });
-		Klein\respond( 'POST', '/', function($request){ echo '2'; });
-		Klein\respond( function($request){ echo '3'; });
-		Klein\dispatch( '/', 'POST' );
+		respond( 'POST', null, function($request){ echo 'yup!'; });
+		respond( 'POST', '*', function($request){ echo '1'; });
+		respond( 'POST', '/', function($request){ echo '2'; });
+		respond( function($request){ echo '3'; });
+		dispatch( '/', 'POST' );
 	}
 
 	public function testLazyTrailingMatch() {
 		$this->expectOutputString( 'this-is-a-title-123' );
 
-		Klein\respond( '/posts/[*:title][i:id]', function($request){
+		respond( '/posts/[*:title][i:id]', function($request){
 			echo $request->param('title')
 				. $request->param('id');
 		});
-		Klein\dispatch( '/posts/this-is-a-title-123' );
+		dispatch( '/posts/this-is-a-title-123' );
 	}
 
 	public function testFormatMatch() {
 		$this->expectOutputString( 'xml' );
 
-		Klein\respond( '/output.[xml|json:format]', function($request){
+		respond( '/output.[xml|json:format]', function($request){
 			echo $request->param('format');
 		});
-		Klein\dispatch( '/output.xml' );
+		dispatch( '/output.xml' );
 	}
 
 	public function testDotSeparator() {
 		$this->expectOutputString( 'matchA:slug=ABCD_E--matchB:slug=ABCD_E--' );
 
-		Klein\respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
-		Klein\respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
-		Klein\dispatch("/category1/categoryX/ABCD_E.php");
+		respond('/[*:cpath]/[:slug].[:format]',   function($rq){ echo 'matchA:slug='.$rq->param("slug").'--';});
+		respond('/[*:cpath]/[:slug].[:format]?',  function($rq){ echo 'matchB:slug='.$rq->param("slug").'--';});
+		respond('/[*:cpath]/[a:slug].[:format]?', function($rq){ echo 'matchC:slug='.$rq->param("slug").'--';});
+		dispatch("/category1/categoryX/ABCD_E.php");
 
 		$this->assertOutputSame(
 			'matchA:slug=ABCD_E--matchB:slug=ABCD_E--',
-			function(){Klein\dispatch( '/category1/categoryX/ABCD_E.php' );}
+			function(){dispatch( '/category1/categoryX/ABCD_E.php' );}
 		);
 		$this->assertOutputSame(
 			'matchB:slug=ABCD_E--',
-			function(){Klein\dispatch( '/category1/categoryX/ABCD_E' );}
+			function(){dispatch( '/category1/categoryX/ABCD_E' );}
 		);
 	}
 
 	public function testControllerActionStyleRouteMatch() {
 		$this->expectOutputString( 'donkey-kick' );
 
-		Klein\respond( '/[:controller]?/[:action]?', function($request){
+		respond( '/[:controller]?/[:action]?', function($request){
 			echo $request->param('controller')
 				. '-' . $request->param('action');
 		});
-		Klein\dispatch( '/donkey/kick' );
+		dispatch( '/donkey/kick' );
 	}
 
 	public function testRespondArgumentOrder() {
 		$this->expectOutputString( 'abcdef' );
 
-		Klein\respond( function(){ echo 'a'; });
-		Klein\respond( null, function(){ echo 'b'; });
-		Klein\respond( '/endpoint', function(){ echo 'c'; });
-		Klein\respond( 'GET', null, function(){ echo 'd'; });
-		Klein\respond( array( 'GET', 'POST' ), null, function(){ echo 'e'; });
-		Klein\respond( array( 'GET', 'POST' ), '/endpoint', function(){ echo 'f'; });
-		Klein\dispatch( '/endpoint' );
+		respond( function(){ echo 'a'; });
+		respond( null, function(){ echo 'b'; });
+		respond( '/endpoint', function(){ echo 'c'; });
+		respond( 'GET', null, function(){ echo 'd'; });
+		respond( array( 'GET', 'POST' ), null, function(){ echo 'e'; });
+		respond( array( 'GET', 'POST' ), '/endpoint', function(){ echo 'f'; });
+		dispatch( '/endpoint' );
 	}
 
 	public function testTrailingMatch() {
-		Klein\respond( '/?[*:trailing]/dog/?', function($request){ echo 'yup'; });
+		respond( '/?[*:trailing]/dog/?', function($request){ echo 'yup'; });
 
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/dog'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/cheese/dog'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/ball/cheese/dog/'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/cat/ball/cheese/dog'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('cat/ball/cheese/dog/'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('cat/ball/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/cat/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/cat/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/cat/ball/cheese/dog/'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/cat/ball/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('cat/ball/cheese/dog/'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('cat/ball/cheese/dog'); });
 	}
 
 	public function testTrailingPossessiveMatch() {
-		Klein\respond( '/sub-dir/[**:trailing]', function($request){ echo 'yup'; });
+		respond( '/sub-dir/[**:trailing]', function($request){ echo 'yup'; });
 
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/dog'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/cheese/dog'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/ball/cheese/dog/'); });
-		$this->assertOutputSame( 'yup', function(){ Klein\dispatch('/sub-dir/ball/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/cheese/dog'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/ball/cheese/dog/'); });
+		$this->assertOutputSame( 'yup', function(){ dispatch('/sub-dir/ball/cheese/dog'); });
 	}
 
 	public function testNSDispatch() {
-		Klein\with('/u', function () {
-			Klein\respond('GET', '/?',     function ($request, $response) { echo "slash";   });
-			Klein\respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
+		with('/u', function () {
+			respond('GET', '/?',     function ($request, $response) { echo "slash";   });
+			respond('GET', '/[:id]', function ($request, $response) { echo "id"; });
 		});
-		Klein\respond(404, function ($request, $response) { echo "404"; });
+		respond(404, function ($request, $response) { echo "404"; });
 
-		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u");});
-		$this->assertOutputSame("slash",          function(){Klein\dispatch("/u/");});
-		$this->assertOutputSame("id",             function(){Klein\dispatch("/u/35");});
-		$this->assertOutputSame("404",             function(){Klein\dispatch("/35");});
+		$this->assertOutputSame("slash",          function(){dispatch("/u");});
+		$this->assertOutputSame("slash",          function(){dispatch("/u/");});
+		$this->assertOutputSame("id",             function(){dispatch("/u/35");});
+		$this->assertOutputSame("404",             function(){dispatch("/35");});
 	}
 
 	public function testNSDispatchExternal() {
 		$ext_namespaces = $this->loadExternalRoutes();
 
-		Klein\respond(404, function ($request, $response) { echo "404"; });
+		respond(404, function ($request, $response) { echo "404"; });
 
 		foreach ( $ext_namespaces as $namespace ) {
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/' ); });
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/testing/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/testing/' ); });
 		}
 	}
 
 	public function testNSDispatchExternalRerequired() {
 		$ext_namespaces = $this->loadExternalRoutes();
 
-		Klein\respond(404, function ($request, $response) { echo "404"; });
+		respond(404, function ($request, $response) { echo "404"; });
 
 		foreach ( $ext_namespaces as $namespace ) {
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/' ); });
-			$this->assertOutputSame('yup',  function() use ( $namespace ) { Klein\dispatch( $namespace . '/testing/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/' ); });
+			$this->assertOutputSame('yup',  function() use ( $namespace ) { dispatch( $namespace . '/testing/' ); });
 		}
 	}
 
@@ -368,13 +266,13 @@ class RoutesTest extends AbstractKleinTest {
 
 		$this->expectOutputString( '_' );
 
-		Klein\respond( function(){ echo '_'; });
-		Klein\respond( 'GET', null, function(){ echo 'fail'; });
-		Klein\respond( array( 'GET', 'POST' ), null, function(){ echo 'fail'; });
-		Klein\respond( 405, function($a,$b,$c,$d,$methods) use ( &$resultArray ) {
+		respond( function(){ echo '_'; });
+		respond( 'GET', null, function(){ echo 'fail'; });
+		respond( array( 'GET', 'POST' ), null, function(){ echo 'fail'; });
+		respond( 405, function($a,$b,$c,$d,$methods) use ( &$resultArray ) {
 			$resultArray = $methods;
 		});
-		Klein\dispatch( '/sure', 'DELETE' );
+		dispatch( '/sure', 'DELETE' );
 
 		$this->assertCount( 2, $resultArray );
 		$this->assertContains( 'GET', $resultArray );

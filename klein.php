@@ -1,26 +1,13 @@
 <?php
-namespace Klein;
-use \Exception;
-use \ErrorException;
-use \OutOfRangeException;
-use \InvalidArgumentException;
-use \StdClass;
-
-function reset() {
-    Router::$routes = array();
-    Router::$namespace = null;
-}
-class Router {
-    public static $routes = array();
-    public static $namespace = null;
-}
-
 # (c) Chris O'Hara <cohara87@gmail.com> (MIT License)
 # http://github.com/chriso/klein.php
 
+$__routes = array();
+$__namespace = null;
+
 // Add a route callback
 function respond($name, $method = null, $route = '*', $callback = null) {
-    $__namespace = Router::$namespace;
+    global $__routes, $__namespace;
 
     $args = func_get_args();
     $callback = array_pop($args);
@@ -66,9 +53,9 @@ function respond($name, $method = null, $route = '*', $callback = null) {
     }
 
     if (null !== $name) {
-        Router::$routes[$name] = array($method, $route, $callback, $count_match);
+        $__routes[$name] = array($method, $route, $callback, $count_match);
     } else {
-        Router::$routes[] = array($method, $route, $callback, $count_match);
+        $__routes[] = array($method, $route, $callback, $count_match);
     }
 
     return $callback;
@@ -88,6 +75,8 @@ function respond($name, $method = null, $route = '*', $callback = null) {
  * @throws InvalidArgumentException if some mandatory params have not been passed (normal mode)
  */
 function getUrl($routeName=null, $params = array(), $fPlaceHolders=false) {
+    global $__routes;
+
     if (null === $routeName || true === $routeName) {
         return '/';
     }
@@ -98,12 +87,12 @@ function getUrl($routeName=null, $params = array(), $fPlaceHolders=false) {
     }
 
     // Check if named route exists
-    if(!isset(Router::$routes[$routeName])) {
+    if(!isset($__routes[$routeName])) {
         throw new OutOfRangeException("Route '{$routeName}' does not exist.");
     }
 
     // Replace named parameters
-    $url = Router::$routes[$routeName][1];
+    $url = $__routes[$routeName][1];
 
     if (preg_match_all('`(/|\.|)\[([^:\]]*+)(?::([^:\]]*+))?\](\?|)`', $url, $matches, PREG_SET_ORDER)) {
 
@@ -129,14 +118,15 @@ function getUrl($routeName=null, $params = array(), $fPlaceHolders=false) {
 
 // Each route defined inside $routes will be in the $namespace
 function with($namespace, $routes) {
-    $previous = Router::$namespace;
-    Router::$namespace .= $namespace;
+    global $__namespace;
+    $previous = $__namespace;
+    $__namespace .= $namespace;
     if (is_callable($routes)) {
         $routes();
     } else {
         require $routes;
     }
-    Router::$namespace = $previous;
+    $__namespace = $previous;
 }
 
 function startSession() {
@@ -147,6 +137,8 @@ function startSession() {
 
 // Dispatch the request to the approriate route(s)
 function dispatch($uri = null, $req_method = null, array $params = null, $capture = false) {
+    global $__routes;
+
     // Pass $request, $response, and a blank object for sharing scope through each callback
     $request  = new _Request;
     $response = new _Response;
@@ -184,7 +176,7 @@ function dispatch($uri = null, $req_method = null, array $params = null, $captur
 
     ob_start();
 
-    foreach (Router::$routes as $handler) {
+    foreach ($__routes as $handler) {
         list($method, $_route, $callback, $count_match) = $handler;
 
         $method_match = null;

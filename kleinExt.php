@@ -1,7 +1,7 @@
 <?php
 require_once("klein.php");
 
-function respond($optName_url_action) {
+function respondExt($optName_url_action) {
     $name = null;
     $method = null;
 
@@ -31,7 +31,7 @@ function respond($optName_url_action) {
     }
 
     //echo "url=$route, method=$method, name=$name, action=$action\n";
-    Klein\respond($name, $method, $route, $callback);
+    respond($name, $method, $route, $callback);
 }
 
 function cbproxy($a,$b,$c,$cb) {
@@ -75,20 +75,19 @@ function cbproxy($a,$b,$c,$cb) {
     }
 }
 
-function dispatch($uri = null, $req_method = null, array $params = null, $capture = false) {
+function dispatchExt($uri = null, $req_method = null, array $params = null, $capture = false) {
     if (null === $uri) {
         $uri = substr($_SERVER['REQUEST_URI'], strlen(getenv("BASE_URL")));
     }
-    return Klein\dispatch($uri, $req_method, $params, $capture);
+    return dispatch($uri, $req_method, $params, $capture);
 }
 
-function with($namespace, $routes) {
-    Klein\with($namespace, $routes);
+function withExt($namespace, $routes) {
+    with($namespace, $routes);
 }
 
-
-function getUrl() {
-    $ret = call_user_func_array('Klein\getUrl', func_get_args());
+function getUrlExt() {
+    $ret = call_user_func_array('getUrl', func_get_args());
     $ret = str_replace('//', '/', $ret);
     $ret = str_replace('//', '/', $ret);
 
@@ -122,7 +121,7 @@ class KleinExtController {
      * @param Klein\_Response $rs
      * @param Klein\_App $ap
      */
-    public function __construct(Klein\_Request $rq, Klein\_Response $rs, Klein\_App $ap) {
+    public function __construct(_Request $rq, _Response $rs, _App $ap) {
         $this->_rq = $rq;
         $this->_rs = $rs;
         $this->_ap = $ap;
@@ -132,7 +131,7 @@ class KleinExtController {
 }
 
 // response helpers
-respond(function( Klein\_Request $rq, Klein\_Response $rs, Klein\_App $ap){
+respondExt(function( _Request $rq, _Response $rs, _App $ap){
     $rs->h = function($s) { return htmlspecialchars_decode($s, ENT_QUOTES); };
 
     /**
