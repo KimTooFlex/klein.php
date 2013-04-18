@@ -164,14 +164,14 @@ class RoutesTest extends AbstractKleinTest {
 	public function testMethodMultiple() {
 		$this->expectOutputString( 'd' );
 
-		Klein\respond( "GET|POST",  "/a", function(){ echo 'd'; });
+		Klein\respond( array("GET","POST"),  "/a", function(){ echo 'd'; });
 		Klein\dispatch( '/a' );
 	}
 
 	public function testgetUrl() {
 		$expect = "";
 
-		Klein\respond('home', 'GET|POST','/', function(){});
+		Klein\respond('home', array('GET','POST'),'/', function(){});
 		Klein\respond('GET','/users/', function(){});
 		Klein\respond('users_show', 'GET','/users/[i:id]', function(){});
 		Klein\respond('users_do', 'POST','/users/[i:id]/[delete|update:action]', function(){});
@@ -200,7 +200,7 @@ class RoutesTest extends AbstractKleinTest {
 	public function testgetUrlPlaceHolders() {
 		$expect = "";
 
-		Klein\respond('home', 'GET|POST','/', function(){});
+		Klein\respond('home', array('GET','POST'),'/', function(){});
 		Klein\respond('GET','/users/', function(){});
 		Klein\respond('users_show', 'GET','/users/[i:id]', function(){});
 		Klein\respond('posts_do', 'GET', '/posts/[create|edit:action]?/[i:id]?', function(){});

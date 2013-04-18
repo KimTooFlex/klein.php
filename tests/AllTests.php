@@ -4,6 +4,7 @@ require_once dirname(__FILE__) . '/HeadersTest.php';
 require_once dirname(__FILE__) . '/RoutesTest.php';
 require_once dirname(__FILE__) . '/ValidationsTest.php';
 require_once dirname(__FILE__) . '/ResponsesTest.php';
+require_once dirname(__FILE__) . '/RoutesExtTest.php';
 
 class AllTests
 {
@@ -15,6 +16,7 @@ class AllTests
         $suite->addTestSuite('RoutesTest');
         $suite->addTestSuite('ValidationsTest');
         $suite->addTestSuite('ResponsesTest');
+        $suite->addTestSuite('RoutesExtTest');
 
         return $suite;
     }

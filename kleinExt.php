@@ -14,6 +14,7 @@ function respond($optName_url_action) {
     // get methods from url
     if (($i=strpos($route, " "))!==false) {
         $method = substr($route, 0, $i);
+        $method = explode("|", $method); // convert methods to array
         $route = trim(substr($route, $i+1));
     }
 
@@ -80,6 +81,11 @@ function dispatch($uri = null, $req_method = null, array $params = null, $captur
     }
     return Klein\dispatch($uri, $req_method, $params, $capture);
 }
+
+function with($namespace, $routes) {
+    Klein\with($namespace, $routes);
+}
+
 
 function getUrl() {
     $ret = call_user_func_array('Klein\getUrl', func_get_args());
