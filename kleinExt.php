@@ -77,6 +77,10 @@ function cbproxy($a,$b,$c,$cb) {
 
 function dispatchExt($uri = null, $req_method = null, array $params = null, $capture = false) {
     if (null === $uri) {
+        if (!isset($_SERVER['REQUEST_URI'])) {
+            // no request : don't do anything
+            return;
+        }
         $uri = substr($_SERVER['REQUEST_URI'], strlen(getenv("BASE_URL")));
     }
     return dispatch($uri, $req_method, $params, $capture);
