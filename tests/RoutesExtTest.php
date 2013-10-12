@@ -1,6 +1,5 @@
 <?php
 
-require_once dirname(dirname(__FILE__)) . '/kleinExt.php';
 require_once dirname(__FILE__) . '/AbstractKleinTest.php';
 
 class TestExtClass {

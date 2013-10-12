@@ -9,6 +9,8 @@ require_once dirname(__FILE__) . '/setup.php';
  * @abstract
  */
 abstract class AbstractKleinTest extends PHPUnit_Framework_TestCase {
+	// prevent phpunit from backuping $__routes since it contains a closure
+	protected $backupGlobalsBlacklist = array('__routes');
 
 	protected function setUp() {
 		global $__routes;
