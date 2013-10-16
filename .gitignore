@@ -2,5 +2,7 @@
 /.project
 /.settings
 
+/vendor/
+
 # Composer
-composer.lock
+/composer.lock

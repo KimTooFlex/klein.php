@@ -1,17 +1,25 @@
 <?php
 require_once("klein.php");
 
-function respondExt($optName_url_action) {
-    $name = null;
-    $method = null;
+/**
+ * Add a route callback
+ * @param mixed $args               An argument array. Hint: This works well when passing "func_get_args()"
+ *  @named string[optional] $name   route name
+ *  @named string $path   path to match: "path" or "GET|POST path"
+ *  @named callable $callback       callable or a string "ctrl#act" or "act" that will be mapped to
+ *                                  ctrlController/actionAct or defaultController/actionAct method
+ * @return void
+ */
+function respondExt($optName_path_callback) {
+    global $__routes;
 
-    $args = func_get_args();
-    //print_r($args);
+    $args = (is_array($optName_path_callback)) ? ($optName_path_callback) : (func_get_args());
     $callback = array_pop($args);
     $route = array_pop($args);
     $name = array_pop($args);
 
     // get methods from url
+    $method = null;
     if (($i=strpos($route, " "))!==false) {
         $method = substr($route, 0, $i);
         $method = explode("|", $method); // convert methods to array
@@ -25,56 +33,88 @@ function respondExt($optName_url_action) {
             $ctrl      = substr($callback, 0, $i);
             $callback  = substr($callback, $i+1);
         }
-        $callback = function($a,$b,$c)use($ctrl,$callback) {
-            cbproxy($a,$b,$c,array(ucfirst($ctrl) . 'Controller', 'action' . ucfirst($callback)));
+        $callback = function($rq, $rs, $ap) use ($ctrl, $callback) {
+            cbproxy($rq, $rs, $ap, array(ucfirst($ctrl) . 'Controller', 'action' . ucfirst($callback)));
         };
     }
 
     //echo "url=$route, method=$method, name=$name, action=$action\n";
-    respond($name, $method, $route, $callback);
+    // call Klein's respond with a local empty $__routes array,
+    // then inject the newly created route back in the global $__routes array
+    $routesBackup = $__routes;
+    $__routes = array();
+    respond($method, $route, $callback);
+    if (null !== $name) {
+        $routesBackup[$name] = $__routes[0];
+    } else {
+        $routesBackup[] = $__routes[0];
+    }
+    $__routes = $routesBackup;
 }
 
-function cbproxy($a,$b,$c,$cb) {
+/**
+ * Internal function to auto load and instancize controllers (also handles static ones)
+ * Before launching the action method, call ctrl->initialize($a, $b, $c)
+ * Then call ctrl->before("action", $a, $b, $c)
+ * The controllers must be on the controllers/ directory
+ * Singletons controllers are detected based on the presence of a getSingleton / getInstance methods
+ * @param _Request $rq
+ * @param _Response $rs
+ * @param _App $ap
+ * @param mixed $cb
+ */
+function cbproxy($rq, $rs, $ap, $cb) {
     //Gb_Log::logDebug("klein: call",$cb);
     if (!class_exists($cb[0])) {
         require("controllers" . DIRECTORY_SEPARATOR . $cb[0] . '.php');
     }
     $refl = new ReflectionMethod($cb[0], $cb[1]);
     if ($refl->isStatic()) {
-        //echo $cb[0] . " --- " . $cb[1] . "a=".var_export($a,true). "b=".var_export($b,true). "c=".var_export($c, true);
+        //echo $cb[0] . " --- " . $cb[1] . "a=".var_export($rq,true). "b=".var_export($rs,true). "c=".var_export($ap, true);
         if (is_callable(array($cb[0], "initialize"))) {
-            call_user_func(array($cb[0], "initialize"), $a, $b, $c);
+            call_user_func(array($cb[0], "initialize"), $rq, $rs, $ap);
         }
         if (is_callable(array($cb[0], "before"))) {
-            if (!call_user_func(array($cb[0], "before"), $cb[1], $a, $b, $c)) {
+            if (!call_user_func(array($cb[0], "before"), $cb[1], $rq, $rs, $ap)) {
                 return;
             }
         }
-        call_user_func($cb, $a, $b, $c);
+        call_user_func($cb, $rq, $rs, $ap);
     } else {
         $single = null;
         foreach ( array("getSingleton", "getInstance") as $meth) {
             $cb2 = array($cb[0], $meth);
             if (is_callable($cb2)) {
-                $single = call_user_func($cb2, $a, $b, $c);
+                $single = call_user_func($cb2, $rq, $rs, $ap);
                 break;
             }
         }
         if (null === $single) {
-            $single = new $cb[0]($a, $b, $c);    // construct new Object
+            $single = new $cb[0]($rq, $rs, $ap);    // construct new Object
         }
         if (is_callable(array($single, "initialize"))) {
-            call_user_func(array($single, "initialize"), $a, $b, $c);
+            call_user_func(array($single, "initialize"), $rq, $rs, $ap);
         }
         if (is_callable(array($single, "before"))) {
-            if (!call_user_func(array($single, "before"), $cb[1], $a, $b, $c)) {
+            if (!call_user_func(array($single, "before"), $cb[1], $rq, $rs, $ap)) {
                 return;
             }
         }
-        call_user_func(array($single, $cb[1]), $a, $b, $c);
+        call_user_func(array($single, $cb[1]), $rq, $rs, $ap);
     }
 }
 
+/**
+ * simple proxy for with()
+ */
+function withExt($namespace, $routes) {
+    with($namespace, $routes);
+}
+
+/**
+ * Dispatch the request to the approriate route(s)
+ * Honor BASE_URL environment variable, then call Klein's dispatch()
+ */
 function dispatchExt($uri = null, $req_method = null, array $params = null, $capture = false) {
     if (null === $uri) {
         if (!isset($_SERVER['REQUEST_URI'])) {
@@ -86,8 +126,59 @@ function dispatchExt($uri = null, $req_method = null, array $params = null, $cap
     return dispatch($uri, $req_method, $params, $capture);
 }
 
-function withExt($namespace, $routes) {
-    with($namespace, $routes);
+/**
+ * Reversed routing
+ *
+ * Generate the URL for a named route. Replace regexes with supplied parameters
+ * When in PlaceHolders mode, render not-passed params as [:param)
+ *
+ * @param string $routeName[optional]            The name of the route.
+ * @param array[optional] $params                Associative array of parameters to replace placeholders with.
+ * @param boolean[optional,false) $fPlaceHolders When set, generate URL with placeholders ie "/user/12/[:action]"
+ * @return string                                The URL of the route with named parameters in place.
+ * @throws OutOfRangeException                   if $routeName has not been registred
+ * @throws InvalidArgumentException              if some mandatory params have not been passed (normal mode)
+ */
+function getUrl($routeName=null, $params = array(), $fPlaceHolders=false) {
+    global $__routes;
+
+    if (null === $routeName || true === $routeName) {
+        return '/';
+    }
+
+    if (true === $params) { //called as ($routeName, true)
+        $params = array();
+        $fPlaceHolders = true;
+    }
+
+    // Check if named route exists
+    if(!isset($__routes[$routeName])) {
+        throw new OutOfRangeException("Route '{$routeName}' does not exist.");
+    }
+
+    // Replace named parameters
+    $url = $__routes[$routeName][1];
+
+    if (preg_match_all('`(/|\.|)\[([^:\]]*+)(?::([^:\]]*+))?\](\?|)`', $url, $matches, PREG_SET_ORDER)) {
+
+        foreach($matches as $match) {
+            list($block, $pre, $type, $param, $optional) = $match;
+
+            if(isset($params[$param])) { // passed argument
+                $url = str_replace($block, $pre . $params[$param], $url);
+            } elseif ($fPlaceHolders) { // placeholder mode: render /[:param] (remove type and optional)
+                $url = str_replace($block, $pre . '[:' . $param . ']', $url);
+            } elseif ($optional) {
+                $url = str_replace($block, '', $url);
+            } else { // not set, mandatory param
+                throw new InvalidArgumentException("Param '{$param}' not set for route '{$routeName}'");
+            }
+        }
+
+
+    }
+
+    return $url;
 }
 
 function getUrlExt() {
@@ -99,33 +190,34 @@ function getUrlExt() {
 }
 
 /**
- * Ordre:
+ * Class to be extended by your controllers
+ * provide $this->_rq, $this->_rs, $this->_ap
  * __construct
  * initialize
  * before
  */
 
-class KleinExtController {
+abstract class KleinExtController {
     /**
-     * @var Klein\_Request
+     * @var _Request
      */
     protected $_rq;
     /**
-     * @var Klein\_Response
+     * @var _Response
      */
     protected $_rs;
     /**
-     * @var Klein\_App
+     * @var _App
      */
     protected $_ap;
 
     /**
      * Default constructor
-     * @param Klein\_Request $rq
-     * @param Klein\_Response $rs
-     * @param Klein\_App $ap
+     * @param _Request $rq
+     * @param _Response $rs
+     * @param _App $ap
      */
-    public function __construct(_Request $rq, _Response $rs, _App $ap) {
+    final public function __construct(_Request $rq, _Response $rs, _App $ap) {
         $this->_rq = $rq;
         $this->_rs = $rs;
         $this->_ap = $ap;
@@ -134,7 +226,17 @@ class KleinExtController {
 
 }
 
-// response helpers
+/**
+ * Useful helpers:
+ * $rs->h(): shortcut for htmlspecialchars_decode()
+ * $rs->renderJSON()
+ * $rs->urlScheme(): http|https
+ * $rs->urlHostname(): host part of the url
+ * $rs->urlBase($url): getenv("BASE_URL") . $url
+ * $rs->urlPrefix($url): returns "[scheme]://[hostname]/$url"
+ * $rs->isAjax()
+ * $rs->redirect(): handle getenv("BASE_URL")
+ */
 respondExt(function( _Request $rq, _Response $rs, _App $ap){
     $rs->h = function($s) { return htmlspecialchars_decode($s, ENT_QUOTES); };
 
@@ -235,13 +337,21 @@ respondExt(function( _Request $rq, _Response $rs, _App $ap){
     $rs->urlPrefix = function($url = '') use ($rs) {
         $urlPrefix  = $rs->urlScheme();
         $urlPrefix .= "://";
-        $urlPrefix .= $rs->urlBase();
+        $urlPrefix .= $rs->urlHostname();
+
+        if (substr($url, 0, 1) !== "/") {
+            $url = "/" . $url;
+        }
 
         return $urlPrefix . $url;
     };
 
-    $rs->urlBase = function() {
+    $rs->urlHostname = function() {
         return isset($_SERVER["HTTP_X_FORWARDED_HOST"]) ? ($_SERVER["HTTP_X_FORWARDED_HOST"]) : ($_SERVER["HTTP_HOST"]);
+    };
+
+    $rs->urlBase = function($url = '') {
+        return getenv("BASE_URL") . $url;
     };
 
     $rs->urlScheme = function() {

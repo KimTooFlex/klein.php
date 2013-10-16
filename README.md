@@ -7,9 +7,8 @@ It is intended to be an extension for ```klein.php```, with some enhanced featur
 
 kleinExt.php provides respondExt(), dispatchExt(), withExt(), getUrlExt() that are the extended version of original respond(), dispatch(), with() and getUrl().
 
-New feature inside klein.php (not implemented as extension):
+The klein.php is the original file unmodified.
 
-* Support for Named route, and URL generating
 
 
 ## New Features:
@@ -27,7 +26,7 @@ RewriteBase             /gbo/candcef
 The route can optionaly specify methods:
 
 ```php
-respond("GET|POST /", function(){});
+respondExt("GET|POST /", function(){});
 ```
 
 ### Class auto instancing
@@ -74,12 +73,12 @@ respondExt('posts_do',   'GET',      '/posts/[create|edit:action]?/[i:id]?', fun
 ```php
 <?php
 
-getUrl('home');                                            // "/"
-getUrl('users_show', array('id' => 14));                   // "/users/14"
-getUrl('user_do', array('id' => 17, 'action'=>'delete'));  // "/users/17/delete"
-getUrl('user_do', array('id' => 17));                      // Exception "Param 'action' not set for route 'user_do'"
-getUrl('posts_do', array('id' => 16));                     // "/posts/16" (note that it isn't /posts//16)
-getUrl('posts_do', array('action' => 'edit', 'id' => 15)); // "/posts/edit/15"
+getUrlExt('home');                                            // "/"
+getUrlExt('users_show', array('id' => 14));                   // "/users/14"
+getUrlExt('user_do', array('id' => 17, 'action'=>'delete'));  // "/users/17/delete"
+getUrlExt('user_do', array('id' => 17));                      // Exception "Param 'action' not set for route 'user_do'"
+getUrlExt('posts_do', array('id' => 16));                     // "/posts/16" (note that it isn't /posts//16)
+getUrlExt('posts_do', array('action' => 'edit', 'id' => 15)); // "/posts/edit/15"
 ```
 
 *Example* - Generating URL for later use (placeholder mode)
@@ -89,10 +88,10 @@ To activate this mode, use getUrl with a new last parameter set to 'true'
 ```php
 <?php
 
-getUrl('users_show', array(), true);                            // "/users/[:id]"
-getUrl('users_show', true);                                     // "/users/[:id]" (shorter notation)
-getUrl('posts_do', array('id' => 15), true);                    // "/posts/[:action]/15"
-getUrl('posts_do', array('action' => "edit"), true);            // "/posts/edit/[:id]"
+getUrlExt('users_show', array(), true);                            // "/users/[:id]"
+getUrlExt('users_show', true);                                     // "/users/[:id]" (shorter notation)
+getUrlExt('posts_do', array('id' => 15), true);                    // "/posts/[:action]/15"
+getUrlExt('posts_do', array('action' => "edit"), true);            // "/posts/edit/[:id]"
 ```
 
 
