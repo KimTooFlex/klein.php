@@ -12,6 +12,8 @@ use Klein\DataCollection\RouteCollection;
 use Klein\DataCollection\ServerDataCollection;
 use Klein\Exceptions\DispatchHaltedException;
 use Klein\Exceptions\DuplicateServiceException;
+use Klein\Exceptions\HttpException;
+use Klein\Exceptions\HttpExceptionInterface;
 use Klein\Exceptions\LockedResponseException;
 use Klein\Exceptions\ResponseAlreadySentException;
 use Klein\Exceptions\UnhandledException;
@@ -1073,6 +1075,8 @@ class HttpStatus
 
 
 
+
+
 /**
  * Klein
  *
@@ -1174,6 +1178,14 @@ class Klein
      * @access protected
      */
     protected $errorCallbacks = array();
+
+    /**
+     * An array of HTTP error callback callables
+     *
+     * @var array[callable]
+     * @access protected
+     */
+    protected $httpErrorCallbacks = array();
 
     /**
      * An array of callbacks to call after processing the dispatch loop
@@ -1364,7 +1376,7 @@ class Klein
      * @param string $path              Route URI path to match
      * @param callable $callback        Callable callback method to execute on route match
      * @access public
-     * @return callable $callback
+     * @return Route
      */
     public function respond($method, $path = '*', $callback = null)
     {
@@ -1414,7 +1426,11 @@ class Klein
         $this->route_factory->appendNamespace($namespace);
 
         if (is_callable($routes)) {
-            $routes($this);
+            if (is_string($routes)) {
+                $routes($this);
+            } else {
+                call_user_func($routes, $this);
+            }
         } else {
             require $routes;
         }
@@ -1529,8 +1545,8 @@ class Klein
                    || ($path === '405' && $matched->isEmpty() && count($methods_matched) > 0)) {
 
                 // Easily handle 40x's
-
-                $this->handleRouteCallback($route, $matched, $methods_matched);
+                // TODO: Possibly remove in future, here for backwards compatibility
+                $this->onHttpError($route);
 
                 continue;
 
@@ -1627,17 +1643,32 @@ class Klein
             }
         }
 
+        // Handle our 404/405 conditions
         try {
             if ($matched->isEmpty() && count($methods_matched) > 0) {
-                if (strcasecmp($req_method, 'OPTIONS') !== 0) {
-                    $this->response->code(405);
-                }
-
+                // Add our methods to our allow header
                 $this->response->header('Allow', implode(', ', $methods_matched));
-            } elseif ($matched->isEmpty()) {
-                $this->response->code(404);
-            }
 
+                if (strcasecmp($req_method, 'OPTIONS') !== 0) {
+                    throw HttpException::createFromCode(405);
+                }
+            } elseif ($matched->isEmpty()) {
+                throw HttpException::createFromCode(404);
+            }
+        } catch (HttpExceptionInterface $e) {
+            // Grab our original response lock state
+            $locked = $this->response->isLocked();
+
+            // Call our http error handlers
+            $this->httpError($e, $matched, $methods_matched);
+
+            // Make sure we return our response to its original lock state
+            if (!$locked) {
+                $this->response->unlock();
+            }
+        }
+
+        try {
             if ($this->response->chunked) {
                 $this->response->chunk();
 
@@ -1828,6 +1859,11 @@ class Klein
             }
         } catch (DispatchHaltedException $e) {
             throw $e;
+        } catch (HttpExceptionInterface $e) {
+            // Call our http error handlers
+            $this->httpError($e, $matched, $methods_matched);
+
+            throw new DispatchHaltedException();
         } catch (Exception $e) {
             $this->error($e);
         }
@@ -1881,6 +1917,69 @@ class Klein
             $this->response->code(500);
             throw new UnhandledException($err);
         }
+
+        // Lock our response, since we probably don't want
+        // anything else messing with our error code/body
+        $this->response->lock();
+    }
+
+    /**
+     * Adds an HTTP error callback to the stack of HTTP error handlers
+     *
+     * @param callable $callback            The callable function to execute in the error handling chain
+     * @access public
+     * @return void
+     */
+    public function onHttpError($callback)
+    {
+        $this->httpErrorCallbacks[] = $callback;
+    }
+
+    /**
+     * Handles an HTTP error exception through our HTTP error callbacks
+     *
+     * @param HttpExceptionInterface $http_exception    The exception that occurred
+     * @param RouteCollection $matched                  The collection of routes that were matched in dispatch
+     * @param array $methods_matched                    The HTTP methods that were matched in dispatch
+     * @access protected
+     * @return void
+     */
+    protected function httpError(HttpExceptionInterface $http_exception, RouteCollection $matched, $methods_matched)
+    {
+        if (!$this->response->isLocked()) {
+            $this->response->code($http_exception->getCode());
+        }
+
+        if (count($this->httpErrorCallbacks) > 0) {
+            foreach (array_reverse($this->httpErrorCallbacks) as $callback) {
+                if ($callback instanceof Route) {
+                    $this->handleRouteCallback($callback, $matched, $methods_matched);
+                } elseif (is_callable($callback)) {
+                    if (is_string($callback)) {
+                        $callback(
+                            $http_exception->getCode(),
+                            $this,
+                            $matched,
+                            $methods_matched,
+                            $http_exception
+                        );
+                    } else {
+                        call_user_func(
+                            $callback,
+                            $http_exception->getCode(),
+                            $this,
+                            $matched,
+                            $methods_matched,
+                            $http_exception
+                        );
+                    }
+                }
+            }
+        }
+
+        // Lock our response, since we probably don't want
+        // anything else messing with our error code/body
+        $this->response->lock();
     }
 
     /**
@@ -1994,7 +2093,7 @@ class Klein
      * @param string $route
      * @param callable $callback
      * @access public
-     * @return callable
+     * @return Route
      */
     public function options($path = '*', $callback = null)
     {
@@ -2014,7 +2113,7 @@ class Klein
      * @param string $path
      * @param callable $callback
      * @access public
-     * @return callable
+     * @return Route
      */
     public function head($path = '*', $callback = null)
     {
@@ -2034,7 +2133,7 @@ class Klein
      * @param string $route
      * @param callable $callback
      * @access public
-     * @return callable
+     * @return Route
      */
     public function get($path = '*', $callback = null)
     {
@@ -2054,7 +2153,7 @@ class Klein
      * @param string $path
      * @param callable $callback
      * @access public
-     * @return callable
+     * @return Route
      */
     public function post($path = '*', $callback = null)
     {
@@ -2074,7 +2173,7 @@ class Klein
      * @param string $path
      * @param callable $callback
      * @access public
-     * @return callable
+     * @return Route
      */
     public function put($path = '*', $callback = null)
     {
@@ -2094,7 +2193,7 @@ class Klein
      * @param string $path
      * @param callable $callback
      * @access public
-     * @return callable
+     * @return Route
      */
     public function delete($path = '*', $callback = null)
     {
@@ -2105,6 +2204,29 @@ class Klein
         );
 
         return $this->respond('DELETE', $path, $callback);
+    }
+
+    /**
+     * PATCH alias for "respond()"
+     *
+     * PATCH was added to HTTP/1.1 in RFC5789
+     *
+     * @link http://tools.ietf.org/html/rfc5789
+     * @see Klein::respond()
+     * @param string $path
+     * @param callable $callback
+     * @access public
+     * @return Route
+     */
+    public function patch($path = '*', $callback = null)
+    {
+        // Get the arguments in a very loose format
+        extract(
+            $this->parseLooseArgumentOrder(func_get_args()),
+            EXTR_OVERWRITE
+        );
+
+        return $this->respond('PATCH', $path, $callback);
     }
 }
 
@@ -2715,6 +2837,15 @@ class Response extends AbstractResponse
     /**
      * Sends a file
      *
+     * It should be noted that this method disables caching
+     * of the response by default, as dynamically created
+     * files responses are usually downloads of some type
+     * and rarely make sense to be HTTP cached
+     *
+     * Also, this method removes any data/content that is
+     * currently in the response body and replaces it with
+     * the file's data
+     *
      * @param string $path      The path of the file to send
      * @param string $filename  The file's name
      * @param string $mimetype  The MIME type of the file
@@ -2725,8 +2856,6 @@ class Response extends AbstractResponse
     {
         $this->body('');
         $this->noCache();
-
-        set_time_limit(1200);
 
         if (null === $filename) {
             $filename = basename($path);
@@ -2749,6 +2878,14 @@ class Response extends AbstractResponse
     /**
      * Sends an object as json or jsonp by providing the padding prefix
      *
+     * It should be noted that this method disables caching
+     * of the response by default, as json responses are usually
+     * dynamic and rarely make sense to be HTTP cached
+     *
+     * Also, this method removes any data/content that is
+     * currently in the response body and replaces it with
+     * the passed json encoded object
+     *
      * @param mixed $object         The data to encode as JSON
      * @param string $jsonp_prefix  The name of the JSON-P function prefix
      * @access public
@@ -2758,8 +2895,6 @@ class Response extends AbstractResponse
     {
         $this->body('');
         $this->noCache();
-
-        set_time_limit(1200);
 
         $json = json_encode($object);
 
@@ -3775,16 +3910,21 @@ class ServiceProvider
     }
 
     /**
-     * Escapes a string
+     * Escapes a string for UTF-8 HTML displaying
+     *
+     * This is a quick macro for escaping strings designed
+     * to be shown in a UTF-8 HTML environment. Its options
+     * are otherwise limited by design
      *
      * @param string $str   The string to escape
+     * @param int $flags    A bitmask of `htmlentities()` compatible flags
      * @static
      * @access public
-     * @return void
+     * @return string
      */
-    public static function escape($str)
+    public static function escape($str, $flags = ENT_QUOTES)
     {
-        return htmlentities($str, ENT_QUOTES, 'UTF-8');
+        return htmlentities($str, $flags, 'UTF-8');
     }
 
     /**
@@ -5062,22 +5202,30 @@ class RouteCollection extends DataCollection
      * key name for that route to equal the routes name, if
      * its changed
      *
+     * Thankfully, because routes are all objects, this doesn't
+     * take much memory as its simply moving references around
+     *
      * @access public
      * @return RouteCollection
      */
     public function prepareNamed()
     {
+        // Create a new collection so we can keep our order
+        $prepared = new static();
+
         foreach ($this as $key => $route) {
             $route_name = $route->getName();
 
             if (null !== $route_name) {
-                // Remove the route from the collection
-                $this->remove($key);
-
-                // Add the route back to the set with the new name
-                $this->set($route_name, $route);
+                // Add the route to the new set with the new name
+                $prepared->set($route_name, $route);
+            } else {
+                $prepared->add($route);
             }
         }
+
+        // Replace our collection's items with our newly prepared collection's items
+        $this->replace($prepared->all());
 
         return $this;
     }
@@ -5213,6 +5361,36 @@ use OutOfBoundsException;
 use OverflowException;
 use RuntimeException;
 use UnexpectedValueException;
+
+/* Start of src/Klein/Exceptions/HttpExceptionInterface.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+/**
+ * HttpExceptionInterface
+ *
+ * An interface for type-hinting generic HTTP errors
+ *
+ * @package    Klein\Exceptions
+ */
+interface HttpExceptionInterface extends KleinExceptionInterface
+{
+}
+
+
+/* End of src/Klein/Exceptions/HttpExceptionInterface.php */
+
+/* -------------------- */
 
 /* Start of src/Klein/Exceptions/KleinExceptionInterface.php */
 
@@ -5379,6 +5557,56 @@ class DuplicateServiceException extends OverflowException implements KleinExcept
 
 
 /* End of src/Klein/Exceptions/DuplicateServiceException.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/Exceptions/HttpException.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * HttpException
+ *
+ * An HTTP error exception
+ * 
+ * @uses       RuntimeException
+ * @package    Klein\Exceptions
+ */
+class HttpException extends RuntimeException implements HttpExceptionInterface
+{
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Create an HTTP exception from nothing but an HTTP code
+     *
+     * @param int $code
+     * @static
+     * @access public
+     * @return HttpException
+     */
+    public static function createFromCode($code)
+    {
+        return new static(null, (int) $code);
+    }
+}
+
+
+/* End of src/Klein/Exceptions/HttpException.php */
 
 /* -------------------- */
 

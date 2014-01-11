@@ -58,7 +58,7 @@ $klein->respond('/[:name]', function ($request) {
 
 ```php
 $klein->respond('GET', '/posts', $callback);
-$klein->respond('POST', '/posts/create', $callback);
+$klein->respond('POST', '/posts', $callback);
 $klein->respond('PUT', '/posts/[i:id]', $callback);
 $klein->respond('DELETE', '/posts/[i:id]', $callback);
 $klein->respond('OPTIONS', null, $callback);
@@ -86,7 +86,7 @@ $klein->respond(function ($request, $response, $service) {
     }
 });
 
-$klein->respond('/report.[xml|csv|json:format]?', function ($reqest, $response, $service) {
+$klein->respond('/report.[xml|csv|json:format]?', function ($request, $response, $service) {
     // Get the format or fallback to JSON as the default
     $send = $request->param('format', 'json');
     $service->$send($report);
