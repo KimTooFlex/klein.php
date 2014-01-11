@@ -20,6 +20,695 @@ use Klein\Exceptions\ValidationException;
 use Klein\ResponseCookie;
 use OutOfBoundsException;
 
+/* Start of src/Klein/AbstractResponse.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+
+
+
+
+/**
+ * AbstractResponse
+ * 
+ * @abstract
+ * @package     Klein
+ */
+abstract class AbstractResponse
+{
+
+    /**
+     * Properties
+     */
+
+    /**
+     * The default response HTTP status code
+     *
+     * @static
+     * @var int
+     * @access protected
+     */
+    protected static $default_status_code = 200;
+
+    /**
+     * The HTTP version of the response
+     *
+     * @var string
+     * @access protected
+     */
+    protected $protocol_version = '1.1';
+
+    /**
+     * The response body
+     *
+     * @var string
+     * @access protected
+     */
+    protected $body;
+
+    /**
+     * HTTP response status
+     *
+     * @var \Klein\HttpStatus
+     * @access protected
+     */
+    protected $status;
+
+    /**
+     * HTTP response headers
+     *
+     * @var \Klein\DataCollection\HeaderDataCollection
+     * @access protected
+     */
+    protected $headers;
+
+    /**
+     * HTTP response cookies
+     *
+     * @var \Klein\DataCollection\ResponseCookieDataCollection
+     * @access protected
+     */
+    protected $cookies;
+
+    /**
+     * Whether or not the response is "locked" from
+     * any further modification
+     *
+     * @var boolean
+     * @access protected
+     */
+    protected $locked = false;
+
+    /**
+     * Whether or not the response has been sent
+     *
+     * @var boolean
+     * @access protected
+     */
+    protected $sent = false;
+
+    /**
+     * Whether the response has been chunked or not
+     *
+     * @var boolean
+     * @access public
+     */
+    public $chunked = false;
+
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Constructor
+     *
+     * Create a new AbstractResponse object with a dependency injected Headers instance
+     *
+     * @param string $body          The response body's content
+     * @param int $status_code      The status code
+     * @param array $headers        The response header "hash"
+     * @access public
+     */
+    public function __construct($body = '', $status_code = null, array $headers = array())
+    {
+        $status_code   = $status_code ?: static::$default_status_code;
+
+        // Set our body and code using our internal methods
+        $this->body($body);
+        $this->code($status_code);
+
+        $this->headers = new HeaderDataCollection($headers);
+        $this->cookies = new ResponseCookieDataCollection();
+    }
+
+    /**
+     * Get (or set) the HTTP protocol version
+     *
+     * Simply calling this method without any arguments returns the current protocol version.
+     * Calling with an integer argument, however, attempts to set the protocol version to what
+     * was provided by the argument.
+     *
+     * @param string $protocol_version
+     * @access public
+     * @return string|AbstractResponse
+     */
+    public function protocolVersion($protocol_version = null)
+    {
+        if (null !== $protocol_version) {
+            // Require that the response be unlocked before changing it
+            $this->requireUnlocked();
+
+            $this->protocol_version = (string) $protocol_version;
+
+            return $this;
+        }
+
+        return $this->protocol_version;
+    }
+
+    /**
+     * Get (or set) the response's body content
+     *
+     * Simply calling this method without any arguments returns the current response body.
+     * Calling with an argument, however, sets the response body to what was provided by the argument.
+     *
+     * @param string $body  The body content string
+     * @access public
+     * @return string|AbstractResponse
+     */
+    public function body($body = null)
+    {
+        if (null !== $body) {
+            // Require that the response be unlocked before changing it
+            $this->requireUnlocked();
+
+            $this->body = (string) $body;
+
+            return $this;
+        }
+
+        return $this->body;
+    }
+
+    /**
+     * Returns the status object
+     *
+     * @access public
+     * @return \Klein\HttpStatus
+     */
+    public function status()
+    {
+        return $this->status;
+    }
+
+    /**
+     * Returns the headers collection
+     *
+     * @access public
+     * @return \Klein\DataCollection\HeaderDataCollection
+     */
+    public function headers()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * Returns the cookies collection
+     *
+     * @access public
+     * @return \Klein\DataCollection\ResponseCookieDataCollection
+     */
+    public function cookies()
+    {
+        return $this->cookies;
+    }
+
+    /**
+     * Get (or set) the HTTP response code
+     *
+     * Simply calling this method without any arguments returns the current response code.
+     * Calling with an integer argument, however, attempts to set the response code to what
+     * was provided by the argument.
+     *
+     * @param int $code     The HTTP status code to send
+     * @access public
+     * @return int|AbstractResponse
+     */
+    public function code($code = null)
+    {
+        if (null !== $code) {
+            // Require that the response be unlocked before changing it
+            $this->requireUnlocked();
+
+            $this->status = new HttpStatus($code);
+
+            return $this;
+        }
+
+        return $this->status->getCode();
+    }
+
+    /**
+     * Prepend a string to the response's content body
+     *
+     * @param string $content   The string to prepend
+     * @access public
+     * @return AbstractResponse
+     */
+    public function prepend($content)
+    {
+        // Require that the response be unlocked before changing it
+        $this->requireUnlocked();
+
+        $this->body = $content . $this->body;
+
+        return $this;
+    }
+
+    /**
+     * Append a string to the response's content body
+     *
+     * @param string $content   The string to append
+     * @access public
+     * @return AbstractResponse
+     */
+    public function append($content)
+    {
+        // Require that the response be unlocked before changing it
+        $this->requireUnlocked();
+
+        $this->body .= $content;
+
+        return $this;
+    }
+
+    /**
+     * Check if the response is locked
+     *
+     * @access public
+     * @return boolean
+     */
+    public function isLocked()
+    {
+        return $this->locked;
+    }
+
+    /**
+     * Require that the response is unlocked
+     *
+     * Throws an exception if the response is locked,
+     * preventing any methods from mutating the response
+     * when its locked
+     *
+     * @throws LockedResponseException  If the response is locked
+     * @access public
+     * @return AbstractResponse
+     */
+    public function requireUnlocked()
+    {
+        if ($this->isLocked()) {
+            throw new LockedResponseException('Response is locked');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Lock the response from further modification
+     *
+     * @access public
+     * @return AbstractResponse
+     */
+    public function lock()
+    {
+        $this->locked = true;
+
+        return $this;
+    }
+
+    /**
+     * Unlock the response from further modification
+     *
+     * @access public
+     * @return AbstractResponse
+     */
+    public function unlock()
+    {
+        $this->locked = false;
+
+        return $this;
+    }
+
+    /**
+     * Generates an HTTP compatible status header line string
+     *
+     * Creates the string based off of the response's properties
+     *
+     * @access protected
+     * @return string
+     */
+    protected function httpStatusLine()
+    {
+        return sprintf('HTTP/%s %s', $this->protocol_version, $this->status);
+    }
+
+    /**
+     * Send our HTTP headers
+     *
+     * @param boolean $cookies_also Whether or not to also send the cookies after sending the normal headers
+     * @param boolean $override     Whether or not to override the check if headers have already been sent
+     * @access public
+     * @return AbstractResponse
+     */
+    public function sendHeaders($cookies_also = true, $override = false)
+    {
+        if (headers_sent() && !$override) {
+            return $this;
+        }
+
+        // Send our HTTP status line
+        header($this->httpStatusLine());
+
+        // Iterate through our Headers data collection and send each header
+        foreach ($this->headers as $key => $value) {
+            header($key .': '. $value, false);
+        }
+
+        if ($cookies_also) {
+            $this->sendCookies($override);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Send our HTTP response cookies
+     *
+     * @param boolean $override     Whether or not to override the check if headers have already been sent
+     * @access public
+     * @return AbstractResponse
+     */
+    public function sendCookies($override = false)
+    {
+        if (headers_sent() && !$override) {
+            return $this;
+        }
+
+        // Iterate through our Cookies data collection and set each cookie natively
+        foreach ($this->cookies as $cookie) {
+            // Use the built-in PHP "setcookie" function
+            setcookie(
+                $cookie->getName(),
+                $cookie->getValue(),
+                $cookie->getExpire(),
+                $cookie->getPath(),
+                $cookie->getDomain(),
+                $cookie->getSecure(),
+                $cookie->getHttpOnly()
+            );
+        }
+
+        return $this;
+    }
+
+    /**
+     * Send our body's contents
+     *
+     * @access public
+     * @return AbstractResponse
+     */
+    public function sendBody()
+    {
+        echo (string) $this->body;
+
+        return $this;
+    }
+
+    /**
+     * Send the response and lock it
+     *
+     * @param boolean $override             Whether or not to override the check if the response has already been sent
+     * @throws ResponseAlreadySentException If the response has already been sent
+     * @access public
+     * @return AbstractResponse
+     */
+    public function send($override = false)
+    {
+        if ($this->sent && !$override) {
+            throw new ResponseAlreadySentException('Response has already been sent');
+        }
+
+        // Send our response data
+        $this->sendHeaders();
+        $this->sendBody();
+
+        // Lock the response from further modification
+        $this->lock();
+
+        // Mark as sent
+        $this->sent = true;
+
+        // If there running FPM, tell the process manager to finish the server request/response handling
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        }
+
+        return $this;
+    }
+
+    /**
+     * Check if the response has been sent
+     *
+     * @access public
+     * @return boolean
+     */
+    public function isSent()
+    {
+        return $this->sent;
+    }
+
+    /**
+     * Enable response chunking
+     *
+     * @link https://github.com/chriso/klein.php/wiki/Response-Chunking
+     * @link http://bit.ly/hg3gHb
+     * @access public
+     * @return AbstractResponse
+     */
+    public function chunk()
+    {
+        if (false === $this->chunked) {
+            $this->chunked = true;
+            $this->header('Transfer-encoding', 'chunked');
+            flush();
+        }
+
+        if (($body_length = strlen($this->body)) > 0) {
+            printf("%x\r\n", $body_length);
+            $this->sendBody();
+            $this->body('');
+            echo "\r\n";
+            flush();
+        }
+
+        return $this;
+    }
+
+    /**
+     * Sets a response header
+     *
+     * @param string $key       The name of the HTTP response header
+     * @param mixed $value      The value to set the header with
+     * @access public
+     * @return AbstractResponse
+     */
+    public function header($key, $value)
+    {
+        $this->headers->set($key, $value);
+
+        return $this;
+    }
+
+    /**
+     * Sets a response cookie
+     *
+     * @param string $key           The name of the cookie
+     * @param string $value         The value to set the cookie with
+     * @param int $expiry           The time that the cookie should expire
+     * @param string $path          The path of which to restrict the cookie
+     * @param string $domain        The domain of which to restrict the cookie
+     * @param boolean $secure       Flag of whether the cookie should only be sent over a HTTPS connection
+     * @param boolean $httponly     Flag of whether the cookie should only be accessible over the HTTP protocol
+     * @access public
+     * @return AbstractResponse
+     */
+    public function cookie(
+        $key,
+        $value = '',
+        $expiry = null,
+        $path = '/',
+        $domain = null,
+        $secure = false,
+        $httponly = false
+    ) {
+        if (null === $expiry) {
+            $expiry = time() + (3600 * 24 * 30);
+        }
+
+        $this->cookies->set(
+            $key,
+            new ResponseCookie($key, $value, $expiry, $path, $domain, $secure, $httponly)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Tell the browser not to cache the response
+     *
+     * @access public
+     * @return AbstractResponse
+     */
+    public function noCache()
+    {
+        $this->header('Pragma', 'no-cache');
+        $this->header('Cache-Control', 'no-store, no-cache');
+
+        return $this;
+    }
+
+    /**
+     * Redirects the request to another URL
+     *
+     * @param string $url   The URL to redirect to
+     * @param int $code     The HTTP status code to use for redirection
+     * @access public
+     * @return AbstractResponse
+     */
+    public function redirect($url, $code = 302)
+    {
+        $this->code($code);
+        $this->header('Location', $url);
+        $this->lock();
+
+        return $this;
+    }
+}
+
+
+/* End of src/Klein/AbstractResponse.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/AbstractRouteFactory.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+/**
+ * AbstractRouteFactory
+ *
+ * Abstract class for a factory for building new Route instances
+ *
+ * @abstract
+ * @package     Klein
+ */
+abstract class AbstractRouteFactory
+{
+
+    /**
+     * Properties
+     */
+
+    /**
+     * The namespace of which to collect the routes in
+     * when matching, so you can define routes under a
+     * common endpoint
+     *
+     * @var string
+     * @access protected
+     */
+    protected $namespace;
+
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Constructor
+     *
+     * @param string $namespace The initial namespace to set
+     * @access public
+     */
+    public function __construct($namespace = null)
+    {
+        $this->namespace = $namespace;
+    }
+
+    /**
+     * Gets the value of namespace
+     *
+     * @access public
+     * @return string
+     */
+    public function getNamespace()
+    {
+        return $this->namespace;
+    }
+
+    /**
+     * Sets the value of namespace
+     *
+     * @param string $namespace The namespace from which to collect the Routes under
+     * @access public
+     * @return AbstractRouteFactory
+     */
+    public function setNamespace($namespace)
+    {
+        $this->namespace = (string) $namespace;
+
+        return $this;
+    }
+
+    /**
+     * Append a namespace to the current namespace
+     *
+     * @param string $namespace The namespace from which to collect the Routes under
+     * @access public
+     * @return AbstractRouteFactory
+     */
+    public function appendNamespace($namespace)
+    {
+        $this->namespace .= (string) $namespace;
+
+        return $this;
+    }
+
+    /**
+     * Build factory method
+     *
+     * This method should be implemented to return a Route instance
+     *
+     * @param callable $callback    Callable callback method to execute on route match
+     * @param string $path          Route URI path to match
+     * @param string|array $method  HTTP Method to match
+     * @param boolean $count_match  Whether or not to count the route as a match when counting total matches
+     * @param string $name          The name of the route
+     * @abstract
+     * @access public
+     * @return Klein\Route
+     */
+    abstract public function build($callback, $path = null, $method = null, $count_match = true, $name = null);
+}
+
+
+/* End of src/Klein/AbstractRouteFactory.php */
+
+/* -------------------- */
+
 /* Start of src/Klein/App.php */
 
 /**
@@ -135,7 +824,7 @@ class App
 
 /* -------------------- */
 
-/* Start of src/Klein/Route.php */
+/* Start of src/Klein/HttpStatus.php */
 
 /**
  * Klein (klein.php) - A lightning fast router for PHP
@@ -149,267 +838,216 @@ class App
 
 
 
-
-
 /**
- * Route
+ * HttpStatus 
  *
- * Class to represent a route definition
- *
+ * HTTP status code and message translator
+ * 
  * @package     Klein
  */
-class Route
+class HttpStatus
 {
 
     /**
-     * Properties
-     */
-
-    /**
-     * The callback method to execute when the route is matched
+     * The HTTP status code
      *
-     * Any valid "callable" type is allowed
-     *
-     * @link http://php.net/manual/en/language.types.callable.php
-     * @var callable
+     * @var int
      * @access protected
      */
-    protected $callback;
+    protected $code;
 
     /**
-     * The URL path to match
-     *
-     * Allows for regular expression matching and/or basic string matching
-     *
-     * Examples:
-     * - '/posts'
-     * - '/posts/[:post_slug]'
-     * - '/posts/[i:id]'
+     * The HTTP status message
      *
      * @var string
      * @access protected
      */
-    protected $path;
+    protected $message;
 
     /**
-     * The HTTP method to match
+     * HTTP 1.1 status messages based on code
      *
-     * May either be represented as a string or an array containing multiple methods to match
-     *
-     * Examples:
-     * - 'POST'
-     * - array('GET', 'POST')
-     *
-     * @var string|array
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+     * @static
+     * @var array
      * @access protected
      */
-    protected $method;
+    protected static $http_messages = array(
+        // Informational 1xx
+        100 => 'Continue',
+        101 => 'Switching Protocols',
 
-    /**
-     * Whether or not to count this route as a match when counting total matches
-     *
-     * @var boolean
-     * @access protected
-     */
-    protected $count_match;
+        // Successful 2xx
+        200 => 'OK',
+        201 => 'Created',
+        202 => 'Accepted',
+        203 => 'Non-Authoritative Information',
+        204 => 'No Content',
+        205 => 'Reset Content',
+        206 => 'Partial Content',
 
-    /**
-     * The name of the route
-     *
-     * Mostly used for reverse routing
-     *
-     * @var string
-     * @access protected
-     */
-    protected $name;
+        // Redirection 3xx
+        300 => 'Multiple Choices',
+        301 => 'Moved Permanently',
+        302 => 'Found',
+        303 => 'See Other',
+        304 => 'Not Modified',
+        305 => 'Use Proxy',
+        306 => '(Unused)',
+        307 => 'Temporary Redirect',
 
+        // Client Error 4xx
+        400 => 'Bad Request',
+        401 => 'Unauthorized',
+        402 => 'Payment Required',
+        403 => 'Forbidden',
+        404 => 'Not Found',
+        405 => 'Method Not Allowed',
+        406 => 'Not Acceptable',
+        407 => 'Proxy Authentication Required',
+        408 => 'Request Timeout',
+        409 => 'Conflict',
+        410 => 'Gone',
+        411 => 'Length Required',
+        412 => 'Precondition Failed',
+        413 => 'Request Entity Too Large',
+        414 => 'Request-URI Too Long',
+        415 => 'Unsupported Media Type',
+        416 => 'Requested Range Not Satisfiable',
+        417 => 'Expectation Failed',
 
-    /**
-     * Methods
-     */
+        // Server Error 5xx
+        500 => 'Internal Server Error',
+        501 => 'Not Implemented',
+        502 => 'Bad Gateway',
+        503 => 'Service Unavailable',
+        504 => 'Gateway Timeout',
+        505 => 'HTTP Version Not Supported',
+    );
+
 
     /**
      * Constructor
      *
-     * @param callable $callback
-     * @param string $path
-     * @param string|array $method
-     * @param boolean $count_match
+     * @param int $code The HTTP code
+     * @param string $message (optional) HTTP message for the corresponding code
      * @access public
+     * @return void
      */
-    public function __construct($callback, $path = null, $method = null, $count_match = true, $name = null)
+    public function __construct($code, $message = null)
     {
-        // Initialize some properties (use our setters so we can validate param types)
-        $this->setCallback($callback);
-        $this->setPath($path);
-        $this->setMethod($method);
-        $this->setCountMatch($count_match);
-        $this->setName($name);
-    }
+        $this->setCode($code);
 
-    /**
-     * Get the callback
-     *
-     * @access public
-     * @return callable
-     */
-    public function getCallback()
-    {
-        return $this->callback;
-    }
-    
-    /**
-     * Set the callback
-     *
-     * @param callable $callback
-     * @throws InvalidArgumentException If the callback isn't a callable
-     * @access public
-     * @return Route
-     */
-    public function setCallback($callback)
-    {
-        if (!is_callable($callback)) {
-            throw new InvalidArgumentException('Expected a callable. Got an uncallable '. gettype($callback));
+        if (null === $message) {
+            $message = static::getMessageFromCode($code);
         }
 
-        $this->callback = $callback;
-
-        return $this;
+        $this->message = $message;
     }
 
     /**
-     * Get the path
+     * Get the HTTP status code
+     *
+     * @access public
+     * @return int
+     */
+    public function getCode()
+    {
+        return $this->code;
+    }
+
+    /**
+     * Get the HTTP status message
      *
      * @access public
      * @return string
      */
-    public function getPath()
+    public function getMessage()
     {
-        return $this->path;
+        return $this->message;
     }
-    
-    /**
-     * Set the path
-     *
-     * @param string $path
-     * @access public
-     * @return Route
-     */
-    public function setPath($path)
-    {
-        $this->path = (string) $path;
 
+    /**
+     * Set the HTTP status code
+     *
+     * @param int $code 
+     * @access public
+     * @return HttpStatus
+     */
+    public function setCode($code)
+    {
+        $this->code = (int) $code;
         return $this;
     }
 
     /**
-     * Get the method
+     * Set the HTTP status message
      *
+     * @param string $message 
      * @access public
-     * @return string|array
+     * @return HttpStatus
      */
-    public function getMethod()
+    public function setMessage($message)
     {
-        return $this->method;
+        $this->message = (string) $message;
+        return $this;
     }
-    
+
     /**
-     * Set the method
-     *
-     * @param string|array $method
-     * @throws InvalidArgumentException If a non-string or non-array type is passed
+     * Get a string representation of our HTTP status
+     * 
      * @access public
-     * @return Route
+     * @return string
      */
-    public function setMethod($method)
+    public function getFormattedString()
     {
-        // Allow null, otherwise expect an array or a string
-        if (null !== $method && !is_array($method) && !is_string($method)) {
-            throw new InvalidArgumentException('Expected an array or string. Got a '. gettype($method));
+        $string = (string) $this->code;
+
+        if (null !== $this->message) {
+            $string = $string . ' ' . $this->message;
         }
 
-        $this->method = $method;
-
-        return $this;
+        return $string;
     }
 
     /**
-     * Get the count_match
+     * Magic "__toString" method
      *
-     * @access public
-     * @return boolean
-     */
-    public function getCountMatch()
-    {
-        return $this->count_match;
-    }
-    
-    /**
-     * Set the count_match
-     *
-     * @param boolean $count_match
-     * @access public
-     * @return Route
-     */
-    public function setCountMatch($count_match)
-    {
-        $this->count_match = (boolean) $count_match;
-
-        return $this;
-    }
-
-    /**
-     * Get the name
+     * Allows the ability to arbitrarily use an instance of this class as a string
+     * This method will be automatically called, returning a string representation
+     * of this instance
      *
      * @access public
      * @return string
      */
-    public function getName()
+    public function __toString()
     {
-        return $this->name;
+        return $this->getFormattedString();
     }
-    
+
     /**
-     * Set the name
+     * Get our HTTP 1.1 message from our passed code
      *
-     * @param string $name
+     * Returns null if no corresponding message was
+     * found for the passed in code
+     *
+     * @param int $int 
+     * @static
      * @access public
-     * @return Route
+     * @return string | null
      */
-    public function setName($name)
+    public static function getMessageFromCode($int)
     {
-        if (null !== $name) {
-            $this->name = (string) $name;
+        if (isset(static::$http_messages[ $int ])) {
+            return static::$http_messages[ $int ];
         } else {
-            $this->name = $name;
+            return null;
         }
-
-        return $this;
-    }
-
-
-    /**
-     * Magic "__invoke" method
-     *
-     * Allows the ability to arbitrarily call this instance like a function
-     *
-     * @param mixed $args Generic arguments, magically accepted
-     * @access public
-     * @return mixed
-     */
-    public function __invoke($args = null)
-    {
-        $args = func_get_args();
-
-        return call_user_func_array(
-            $this->callback,
-            $args
-        );
     }
 }
 
 
-/* End of src/Klein/Route.php */
+/* End of src/Klein/HttpStatus.php */
 
 /* -------------------- */
 
@@ -2145,602 +2783,6 @@ class Response extends AbstractResponse
 
 /* -------------------- */
 
-/* Start of src/Klein/Validator.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-
-
-
-
-/**
- * Validator 
- * 
- * @package    Klein
- */
-class Validator
-{
-
-    /**
-     * Class properties
-     */
-
-    /**
-     * The available validator methods
-     *
-     * @static
-     * @var array
-     * @access protected
-     */
-    public static $methods = array();
-
-    /**
-     * The string to validate
-     *
-     * @var string
-     * @access protected
-     */
-    protected $str;
-
-    /**
-     * The custom exception message to throw on validation failure
-     *
-     * @var string
-     * @access protected
-     */
-    protected $err;
-
-    /**
-     * Flag for whether the default validation methods have been added or not
-     *
-     * @static
-     * @var boolean
-     * @access protected
-     */
-    protected static $defaultAdded = false;
-
-
-    /**
-     * Methods
-     */
-
-    /**
-     * Sets up the validator chain with the string and optional error message
-     *
-     * @param string $str   The string to validate
-     * @param string $err   The optional custom exception message to throw on validation failure
-     * @access public
-     */
-    public function __construct($str, $err = null)
-    {
-        $this->str = $str;
-        $this->err = $err;
-
-        if (!static::$defaultAdded) {
-            static::addDefault();
-        }
-    }
-
-    /**
-     * Adds default validators on first use
-     *
-     * @static
-     * @access public
-     * @return void
-     */
-    public static function addDefault()
-    {
-        static::$methods['null'] = function ($str) {
-            return $str === null || $str === '';
-        };
-        static::$methods['len'] = function ($str, $min, $max = null) {
-            $len = strlen($str);
-            return null === $max ? $len === $min : $len >= $min && $len <= $max;
-        };
-        static::$methods['int'] = function ($str) {
-            return (string)$str === ((string)(int)$str);
-        };
-        static::$methods['float'] = function ($str) {
-            return (string)$str === ((string)(float)$str);
-        };
-        static::$methods['email'] = function ($str) {
-            return filter_var($str, FILTER_VALIDATE_EMAIL) !== false;
-        };
-        static::$methods['url'] = function ($str) {
-            return filter_var($str, FILTER_VALIDATE_URL) !== false;
-        };
-        static::$methods['ip'] = function ($str) {
-            return filter_var($str, FILTER_VALIDATE_IP) !== false;
-        };
-        static::$methods['remoteip'] = function ($str) {
-            return filter_var($str, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
-        };
-        static::$methods['alnum'] = function ($str) {
-            return ctype_alnum($str);
-        };
-        static::$methods['alpha'] = function ($str) {
-            return ctype_alpha($str);
-        };
-        static::$methods['contains'] = function ($str, $needle) {
-            return strpos($str, $needle) !== false;
-        };
-        static::$methods['regex'] = function ($str, $pattern) {
-            return preg_match($pattern, $str);
-        };
-        static::$methods['chars'] = function ($str, $chars) {
-            return preg_match("/^[$chars]++$/i", $str);
-        };
-
-        static::$defaultAdded = true;
-    }
-
-    /**
-     * Add a custom validator to our list of validation methods
-     *
-     * @param string $method        The name of the validator method
-     * @param callable $callback    The callback to perform on validation
-     * @static
-     * @access public
-     * @return void
-     */
-    public static function addValidator($method, $callback)
-    {
-        static::$methods[strtolower($method)] = $callback;
-    }
-
-    /**
-     * Magic "__call" method
-     *
-     * Allows the ability to arbitrarily call a validator with an optional prefix
-     * of "is" or "not" by simply calling an instance property like a callback
-     *
-     * @param callable $method          The callable method to execute
-     * @param array $args               The argument array to pass to our callback
-     * @throws BadMethodCallException   If an attempt was made to call a validator modifier that doesn't exist
-     * @throws ValidationException      If the validation check returns false
-     * @access public
-     * @return Validator
-     */
-    public function __call($method, $args)
-    {
-        $reverse = false;
-        $validator = $method;
-        $method_substr = substr($method, 0, 2);
-
-        if ($method_substr === 'is') {       // is<$validator>()
-            $validator = substr($method, 2);
-        } elseif ($method_substr === 'no') { // not<$validator>()
-            $validator = substr($method, 3);
-            $reverse = true;
-        }
-
-        $validator = strtolower($validator);
-
-        if (!$validator || !isset(static::$methods[$validator])) {
-            throw new BadMethodCallException('Unknown method '. $method .'()');
-        }
-
-        $validator = static::$methods[$validator];
-        array_unshift($args, $this->str);
-
-        switch (count($args)) {
-            case 1:
-                $result = $validator($args[0]);
-                break;
-            case 2:
-                $result = $validator($args[0], $args[1]);
-                break;
-            case 3:
-                $result = $validator($args[0], $args[1], $args[2]);
-                break;
-            case 4:
-                $result = $validator($args[0], $args[1], $args[2], $args[3]);
-                break;
-            default:
-                $result = call_user_func_array($validator, $args);
-                break;
-        }
-
-        $result = (bool)($result ^ $reverse);
-
-        if (false === $this->err) {
-            return $result;
-        } elseif (false === $result) {
-            throw new ValidationException($this->err);
-        }
-
-        return $this;
-    }
-}
-
-
-/* End of src/Klein/Validator.php */
-
-/* -------------------- */
-
-/* Start of src/Klein/HttpStatus.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-/**
- * HttpStatus 
- *
- * HTTP status code and message translator
- * 
- * @package     Klein
- */
-class HttpStatus
-{
-
-    /**
-     * The HTTP status code
-     *
-     * @var int
-     * @access protected
-     */
-    protected $code;
-
-    /**
-     * The HTTP status message
-     *
-     * @var string
-     * @access protected
-     */
-    protected $message;
-
-    /**
-     * HTTP 1.1 status messages based on code
-     *
-     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-     * @static
-     * @var array
-     * @access protected
-     */
-    protected static $http_messages = array(
-        // Informational 1xx
-        100 => 'Continue',
-        101 => 'Switching Protocols',
-
-        // Successful 2xx
-        200 => 'OK',
-        201 => 'Created',
-        202 => 'Accepted',
-        203 => 'Non-Authoritative Information',
-        204 => 'No Content',
-        205 => 'Reset Content',
-        206 => 'Partial Content',
-
-        // Redirection 3xx
-        300 => 'Multiple Choices',
-        301 => 'Moved Permanently',
-        302 => 'Found',
-        303 => 'See Other',
-        304 => 'Not Modified',
-        305 => 'Use Proxy',
-        306 => '(Unused)',
-        307 => 'Temporary Redirect',
-
-        // Client Error 4xx
-        400 => 'Bad Request',
-        401 => 'Unauthorized',
-        402 => 'Payment Required',
-        403 => 'Forbidden',
-        404 => 'Not Found',
-        405 => 'Method Not Allowed',
-        406 => 'Not Acceptable',
-        407 => 'Proxy Authentication Required',
-        408 => 'Request Timeout',
-        409 => 'Conflict',
-        410 => 'Gone',
-        411 => 'Length Required',
-        412 => 'Precondition Failed',
-        413 => 'Request Entity Too Large',
-        414 => 'Request-URI Too Long',
-        415 => 'Unsupported Media Type',
-        416 => 'Requested Range Not Satisfiable',
-        417 => 'Expectation Failed',
-
-        // Server Error 5xx
-        500 => 'Internal Server Error',
-        501 => 'Not Implemented',
-        502 => 'Bad Gateway',
-        503 => 'Service Unavailable',
-        504 => 'Gateway Timeout',
-        505 => 'HTTP Version Not Supported',
-    );
-
-
-    /**
-     * Constructor
-     *
-     * @param int $code The HTTP code
-     * @param string $message (optional) HTTP message for the corresponding code
-     * @access public
-     * @return void
-     */
-    public function __construct($code, $message = null)
-    {
-        $this->setCode($code);
-
-        if (null === $message) {
-            $message = static::getMessageFromCode($code);
-        }
-
-        $this->message = $message;
-    }
-
-    /**
-     * Get the HTTP status code
-     *
-     * @access public
-     * @return int
-     */
-    public function getCode()
-    {
-        return $this->code;
-    }
-
-    /**
-     * Get the HTTP status message
-     *
-     * @access public
-     * @return string
-     */
-    public function getMessage()
-    {
-        return $this->message;
-    }
-
-    /**
-     * Set the HTTP status code
-     *
-     * @param int $code 
-     * @access public
-     * @return HttpStatus
-     */
-    public function setCode($code)
-    {
-        $this->code = (int) $code;
-        return $this;
-    }
-
-    /**
-     * Set the HTTP status message
-     *
-     * @param string $message 
-     * @access public
-     * @return HttpStatus
-     */
-    public function setMessage($message)
-    {
-        $this->message = (string) $message;
-        return $this;
-    }
-
-    /**
-     * Get a string representation of our HTTP status
-     * 
-     * @access public
-     * @return string
-     */
-    public function getFormattedString()
-    {
-        $string = (string) $this->code;
-
-        if (null !== $this->message) {
-            $string = $string . ' ' . $this->message;
-        }
-
-        return $string;
-    }
-
-    /**
-     * Magic "__toString" method
-     *
-     * Allows the ability to arbitrarily use an instance of this class as a string
-     * This method will be automatically called, returning a string representation
-     * of this instance
-     *
-     * @access public
-     * @return string
-     */
-    public function __toString()
-    {
-        return $this->getFormattedString();
-    }
-
-    /**
-     * Get our HTTP 1.1 message from our passed code
-     *
-     * Returns null if no corresponding message was
-     * found for the passed in code
-     *
-     * @param int $int 
-     * @static
-     * @access public
-     * @return string | null
-     */
-    public static function getMessageFromCode($int)
-    {
-        if (isset(static::$http_messages[ $int ])) {
-            return static::$http_messages[ $int ];
-        } else {
-            return null;
-        }
-    }
-}
-
-
-/* End of src/Klein/HttpStatus.php */
-
-/* -------------------- */
-
-/* Start of src/Klein/RouteFactory.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-/**
- * RouteFactory
- *
- * The default implementation of the AbstractRouteFactory
- *
- * @uses AbstractRouteFactory
- * @package     Klein
- */
-class RouteFactory extends AbstractRouteFactory
-{
-
-    /**
-     * Constants
-     */
-
-    /**
-     * The value given to path's when they are entered as null values
-     *
-     * @const string
-     */
-    const NULL_PATH_VALUE = '*';
-
-
-    /**
-     * Methods
-     */
-
-    /**
-     * Check if the path is null or equal to our match-all, null-like value
-     *
-     * @param mixed $path
-     * @access protected
-     * @return boolean
-     */
-    protected function pathIsNull($path)
-    {
-        return (static::NULL_PATH_VALUE === $path || null === $path);
-    }
-
-    /**
-     * Quick check to see whether or not to count the route
-     * as a match when counting total matches
-     *
-     * @param string $path
-     * @access protected
-     * @return boolean
-     */
-    protected function shouldPathStringCauseRouteMatch($path)
-    {
-        // Only consider a request to be matched when not using 'matchall'
-        return !$this->pathIsNull($path);
-    }
-
-    /**
-     * Pre-process a path string
-     *
-     * This method wraps the path string in a regular expression syntax baesd
-     * on whether the string is a catch-all or custom regular expression.
-     * It also adds the namespace in a specific part, based on the style of expression
-     *
-     * @param string $path
-     * @access protected
-     * @return string
-     */
-    protected function preprocessPathString($path)
-    {
-        // If the path is null, make sure to give it our match-all value
-        $path = (null === $path) ? static::NULL_PATH_VALUE : (string) $path;
-
-        // If a custom regular expression (or negated custom regex)
-        if ($this->namespace && $path[0] === '@' || ($path[0] === '!' && $path[1] === '@')) {
-            // Is it negated?
-            if ($path[0] === '!') {
-                $negate = true;
-                $path = substr($path, 2);
-            } else {
-                $negate = false;
-                $path = substr($path, 1);
-            }
-
-            // Regex anchored to front of string
-            if ($path[0] === '^') {
-                $path = substr($path, 1);
-            } else {
-                $path = '.*' . $path;
-            }
-
-            if ($negate) {
-                $path = '@^' . $this->namespace . '(?!' . $path . ')';
-            } else {
-                $path = '@^' . $this->namespace . $path;
-            }
-
-        } elseif ($this->namespace && $this->pathIsNull($path)) {
-            // Empty route with namespace is a match-all
-            $path = '@^' . $this->namespace . '(/|$)';
-        } else {
-            // Just prepend our namespace
-            $path = $this->namespace . $path;
-        }
-
-        return $path;
-    }
-
-    /**
-     * Build a Route instance
-     *
-     * @param callable $callback    Callable callback method to execute on route match
-     * @param string $path          Route URI path to match
-     * @param string|array $method  HTTP Method to match
-     * @param boolean $count_match  Whether or not to count the route as a match when counting total matches
-     * @param string $name          The name of the route
-     * @static
-     * @access public
-     * @return Route
-     */
-    public function build($callback, $path = null, $method = null, $count_match = true, $name = null)
-    {
-        return new Route(
-            $callback,
-            $this->preprocessPathString($path),
-            $method,
-            $this->shouldPathStringCauseRouteMatch($path) // Ignore the $count_match boolean that they passed
-        );
-    }
-}
-
-
-/* End of src/Klein/RouteFactory.php */
-
-/* -------------------- */
-
 /* Start of src/Klein/ResponseCookie.php */
 
 /**
@@ -3064,6 +3106,430 @@ class ResponseCookie
 
 
 /* End of src/Klein/ResponseCookie.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/Route.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * Route
+ *
+ * Class to represent a route definition
+ *
+ * @package     Klein
+ */
+class Route
+{
+
+    /**
+     * Properties
+     */
+
+    /**
+     * The callback method to execute when the route is matched
+     *
+     * Any valid "callable" type is allowed
+     *
+     * @link http://php.net/manual/en/language.types.callable.php
+     * @var callable
+     * @access protected
+     */
+    protected $callback;
+
+    /**
+     * The URL path to match
+     *
+     * Allows for regular expression matching and/or basic string matching
+     *
+     * Examples:
+     * - '/posts'
+     * - '/posts/[:post_slug]'
+     * - '/posts/[i:id]'
+     *
+     * @var string
+     * @access protected
+     */
+    protected $path;
+
+    /**
+     * The HTTP method to match
+     *
+     * May either be represented as a string or an array containing multiple methods to match
+     *
+     * Examples:
+     * - 'POST'
+     * - array('GET', 'POST')
+     *
+     * @var string|array
+     * @access protected
+     */
+    protected $method;
+
+    /**
+     * Whether or not to count this route as a match when counting total matches
+     *
+     * @var boolean
+     * @access protected
+     */
+    protected $count_match;
+
+    /**
+     * The name of the route
+     *
+     * Mostly used for reverse routing
+     *
+     * @var string
+     * @access protected
+     */
+    protected $name;
+
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Constructor
+     *
+     * @param callable $callback
+     * @param string $path
+     * @param string|array $method
+     * @param boolean $count_match
+     * @access public
+     */
+    public function __construct($callback, $path = null, $method = null, $count_match = true, $name = null)
+    {
+        // Initialize some properties (use our setters so we can validate param types)
+        $this->setCallback($callback);
+        $this->setPath($path);
+        $this->setMethod($method);
+        $this->setCountMatch($count_match);
+        $this->setName($name);
+    }
+
+    /**
+     * Get the callback
+     *
+     * @access public
+     * @return callable
+     */
+    public function getCallback()
+    {
+        return $this->callback;
+    }
+    
+    /**
+     * Set the callback
+     *
+     * @param callable $callback
+     * @throws InvalidArgumentException If the callback isn't a callable
+     * @access public
+     * @return Route
+     */
+    public function setCallback($callback)
+    {
+        if (!is_callable($callback)) {
+            throw new InvalidArgumentException('Expected a callable. Got an uncallable '. gettype($callback));
+        }
+
+        $this->callback = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Get the path
+     *
+     * @access public
+     * @return string
+     */
+    public function getPath()
+    {
+        return $this->path;
+    }
+    
+    /**
+     * Set the path
+     *
+     * @param string $path
+     * @access public
+     * @return Route
+     */
+    public function setPath($path)
+    {
+        $this->path = (string) $path;
+
+        return $this;
+    }
+
+    /**
+     * Get the method
+     *
+     * @access public
+     * @return string|array
+     */
+    public function getMethod()
+    {
+        return $this->method;
+    }
+    
+    /**
+     * Set the method
+     *
+     * @param string|array $method
+     * @throws InvalidArgumentException If a non-string or non-array type is passed
+     * @access public
+     * @return Route
+     */
+    public function setMethod($method)
+    {
+        // Allow null, otherwise expect an array or a string
+        if (null !== $method && !is_array($method) && !is_string($method)) {
+            throw new InvalidArgumentException('Expected an array or string. Got a '. gettype($method));
+        }
+
+        $this->method = $method;
+
+        return $this;
+    }
+
+    /**
+     * Get the count_match
+     *
+     * @access public
+     * @return boolean
+     */
+    public function getCountMatch()
+    {
+        return $this->count_match;
+    }
+    
+    /**
+     * Set the count_match
+     *
+     * @param boolean $count_match
+     * @access public
+     * @return Route
+     */
+    public function setCountMatch($count_match)
+    {
+        $this->count_match = (boolean) $count_match;
+
+        return $this;
+    }
+
+    /**
+     * Get the name
+     *
+     * @access public
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->name;
+    }
+    
+    /**
+     * Set the name
+     *
+     * @param string $name
+     * @access public
+     * @return Route
+     */
+    public function setName($name)
+    {
+        if (null !== $name) {
+            $this->name = (string) $name;
+        } else {
+            $this->name = $name;
+        }
+
+        return $this;
+    }
+
+
+    /**
+     * Magic "__invoke" method
+     *
+     * Allows the ability to arbitrarily call this instance like a function
+     *
+     * @param mixed $args Generic arguments, magically accepted
+     * @access public
+     * @return mixed
+     */
+    public function __invoke($args = null)
+    {
+        $args = func_get_args();
+
+        return call_user_func_array(
+            $this->callback,
+            $args
+        );
+    }
+}
+
+
+/* End of src/Klein/Route.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/RouteFactory.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+/**
+ * RouteFactory
+ *
+ * The default implementation of the AbstractRouteFactory
+ *
+ * @uses AbstractRouteFactory
+ * @package     Klein
+ */
+class RouteFactory extends AbstractRouteFactory
+{
+
+    /**
+     * Constants
+     */
+
+    /**
+     * The value given to path's when they are entered as null values
+     *
+     * @const string
+     */
+    const NULL_PATH_VALUE = '*';
+
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Check if the path is null or equal to our match-all, null-like value
+     *
+     * @param mixed $path
+     * @access protected
+     * @return boolean
+     */
+    protected function pathIsNull($path)
+    {
+        return (static::NULL_PATH_VALUE === $path || null === $path);
+    }
+
+    /**
+     * Quick check to see whether or not to count the route
+     * as a match when counting total matches
+     *
+     * @param string $path
+     * @access protected
+     * @return boolean
+     */
+    protected function shouldPathStringCauseRouteMatch($path)
+    {
+        // Only consider a request to be matched when not using 'matchall'
+        return !$this->pathIsNull($path);
+    }
+
+    /**
+     * Pre-process a path string
+     *
+     * This method wraps the path string in a regular expression syntax baesd
+     * on whether the string is a catch-all or custom regular expression.
+     * It also adds the namespace in a specific part, based on the style of expression
+     *
+     * @param string $path
+     * @access protected
+     * @return string
+     */
+    protected function preprocessPathString($path)
+    {
+        // If the path is null, make sure to give it our match-all value
+        $path = (null === $path) ? static::NULL_PATH_VALUE : (string) $path;
+
+        // If a custom regular expression (or negated custom regex)
+        if ($this->namespace && $path[0] === '@' || ($path[0] === '!' && $path[1] === '@')) {
+            // Is it negated?
+            if ($path[0] === '!') {
+                $negate = true;
+                $path = substr($path, 2);
+            } else {
+                $negate = false;
+                $path = substr($path, 1);
+            }
+
+            // Regex anchored to front of string
+            if ($path[0] === '^') {
+                $path = substr($path, 1);
+            } else {
+                $path = '.*' . $path;
+            }
+
+            if ($negate) {
+                $path = '@^' . $this->namespace . '(?!' . $path . ')';
+            } else {
+                $path = '@^' . $this->namespace . $path;
+            }
+
+        } elseif ($this->namespace && $this->pathIsNull($path)) {
+            // Empty route with namespace is a match-all
+            $path = '@^' . $this->namespace . '(/|$)';
+        } else {
+            // Just prepend our namespace
+            $path = $this->namespace . $path;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Build a Route instance
+     *
+     * @param callable $callback    Callable callback method to execute on route match
+     * @param string $path          Route URI path to match
+     * @param string|array $method  HTTP Method to match
+     * @param boolean $count_match  Whether or not to count the route as a match when counting total matches
+     * @param string $name          The name of the route
+     * @static
+     * @access public
+     * @return Route
+     */
+    public function build($callback, $path = null, $method = null, $count_match = true, $name = null)
+    {
+        return new Route(
+            $callback,
+            $this->preprocessPathString($path),
+            $method,
+            $this->shouldPathStringCauseRouteMatch($path) // Ignore the $count_match boolean that they passed
+        );
+    }
+}
+
+
+/* End of src/Klein/RouteFactory.php */
 
 /* -------------------- */
 
@@ -3542,7 +4008,7 @@ class ServiceProvider
 
 /* -------------------- */
 
-/* Start of src/Klein/AbstractResponse.php */
+/* Start of src/Klein/Validator.php */
 
 /**
  * Klein (klein.php) - A lightning fast router for PHP
@@ -3560,94 +4026,51 @@ class ServiceProvider
 
 
 
-
-
 /**
- * AbstractResponse
+ * Validator 
  * 
- * @abstract
- * @package     Klein
+ * @package    Klein
  */
-abstract class AbstractResponse
+class Validator
 {
 
     /**
-     * Properties
+     * Class properties
      */
 
     /**
-     * The default response HTTP status code
+     * The available validator methods
      *
      * @static
-     * @var int
+     * @var array
      * @access protected
      */
-    protected static $default_status_code = 200;
+    public static $methods = array();
 
     /**
-     * The HTTP version of the response
+     * The string to validate
      *
      * @var string
      * @access protected
      */
-    protected $protocol_version = '1.1';
+    protected $str;
 
     /**
-     * The response body
+     * The custom exception message to throw on validation failure
      *
      * @var string
      * @access protected
      */
-    protected $body;
+    protected $err;
 
     /**
-     * HTTP response status
+     * Flag for whether the default validation methods have been added or not
      *
-     * @var \Klein\HttpStatus
-     * @access protected
-     */
-    protected $status;
-
-    /**
-     * HTTP response headers
-     *
-     * @var \Klein\DataCollection\HeaderDataCollection
-     * @access protected
-     */
-    protected $headers;
-
-    /**
-     * HTTP response cookies
-     *
-     * @var \Klein\DataCollection\ResponseCookieDataCollection
-     * @access protected
-     */
-    protected $cookies;
-
-    /**
-     * Whether or not the response is "locked" from
-     * any further modification
-     *
+     * @static
      * @var boolean
      * @access protected
      */
-    protected $locked = false;
-
-    /**
-     * Whether or not the response has been sent
-     *
-     * @var boolean
-     * @access protected
-     */
-    protected $sent = false;
-
-    /**
-     * Whether the response has been chunked or not
-     *
-     * @var boolean
-     * @access public
-     */
-    public $chunked = false;
+    protected static $defaultAdded = false;
 
 
     /**
@@ -3655,579 +4078,156 @@ abstract class AbstractResponse
      */
 
     /**
-     * Constructor
+     * Sets up the validator chain with the string and optional error message
      *
-     * Create a new AbstractResponse object with a dependency injected Headers instance
-     *
-     * @param string $body          The response body's content
-     * @param int $status_code      The status code
-     * @param array $headers        The response header "hash"
+     * @param string $str   The string to validate
+     * @param string $err   The optional custom exception message to throw on validation failure
      * @access public
      */
-    public function __construct($body = '', $status_code = null, array $headers = array())
+    public function __construct($str, $err = null)
     {
-        $status_code   = $status_code ?: static::$default_status_code;
+        $this->str = $str;
+        $this->err = $err;
 
-        // Set our body and code using our internal methods
-        $this->body($body);
-        $this->code($status_code);
-
-        $this->headers = new HeaderDataCollection($headers);
-        $this->cookies = new ResponseCookieDataCollection();
+        if (!static::$defaultAdded) {
+            static::addDefault();
+        }
     }
 
     /**
-     * Get (or set) the HTTP protocol version
+     * Adds default validators on first use
      *
-     * Simply calling this method without any arguments returns the current protocol version.
-     * Calling with an integer argument, however, attempts to set the protocol version to what
-     * was provided by the argument.
-     *
-     * @param string $protocol_version
+     * @static
      * @access public
-     * @return string|AbstractResponse
+     * @return void
      */
-    public function protocolVersion($protocol_version = null)
+    public static function addDefault()
     {
-        if (null !== $protocol_version) {
-            // Require that the response be unlocked before changing it
-            $this->requireUnlocked();
+        static::$methods['null'] = function ($str) {
+            return $str === null || $str === '';
+        };
+        static::$methods['len'] = function ($str, $min, $max = null) {
+            $len = strlen($str);
+            return null === $max ? $len === $min : $len >= $min && $len <= $max;
+        };
+        static::$methods['int'] = function ($str) {
+            return (string)$str === ((string)(int)$str);
+        };
+        static::$methods['float'] = function ($str) {
+            return (string)$str === ((string)(float)$str);
+        };
+        static::$methods['email'] = function ($str) {
+            return filter_var($str, FILTER_VALIDATE_EMAIL) !== false;
+        };
+        static::$methods['url'] = function ($str) {
+            return filter_var($str, FILTER_VALIDATE_URL) !== false;
+        };
+        static::$methods['ip'] = function ($str) {
+            return filter_var($str, FILTER_VALIDATE_IP) !== false;
+        };
+        static::$methods['remoteip'] = function ($str) {
+            return filter_var($str, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+        };
+        static::$methods['alnum'] = function ($str) {
+            return ctype_alnum($str);
+        };
+        static::$methods['alpha'] = function ($str) {
+            return ctype_alpha($str);
+        };
+        static::$methods['contains'] = function ($str, $needle) {
+            return strpos($str, $needle) !== false;
+        };
+        static::$methods['regex'] = function ($str, $pattern) {
+            return preg_match($pattern, $str);
+        };
+        static::$methods['chars'] = function ($str, $chars) {
+            return preg_match("/^[$chars]++$/i", $str);
+        };
 
-            $this->protocol_version = (string) $protocol_version;
+        static::$defaultAdded = true;
+    }
 
-            return $this;
+    /**
+     * Add a custom validator to our list of validation methods
+     *
+     * @param string $method        The name of the validator method
+     * @param callable $callback    The callback to perform on validation
+     * @static
+     * @access public
+     * @return void
+     */
+    public static function addValidator($method, $callback)
+    {
+        static::$methods[strtolower($method)] = $callback;
+    }
+
+    /**
+     * Magic "__call" method
+     *
+     * Allows the ability to arbitrarily call a validator with an optional prefix
+     * of "is" or "not" by simply calling an instance property like a callback
+     *
+     * @param callable $method          The callable method to execute
+     * @param array $args               The argument array to pass to our callback
+     * @throws BadMethodCallException   If an attempt was made to call a validator modifier that doesn't exist
+     * @throws ValidationException      If the validation check returns false
+     * @access public
+     * @return Validator
+     */
+    public function __call($method, $args)
+    {
+        $reverse = false;
+        $validator = $method;
+        $method_substr = substr($method, 0, 2);
+
+        if ($method_substr === 'is') {       // is<$validator>()
+            $validator = substr($method, 2);
+        } elseif ($method_substr === 'no') { // not<$validator>()
+            $validator = substr($method, 3);
+            $reverse = true;
         }
 
-        return $this->protocol_version;
-    }
+        $validator = strtolower($validator);
 
-    /**
-     * Get (or set) the response's body content
-     *
-     * Simply calling this method without any arguments returns the current response body.
-     * Calling with an argument, however, sets the response body to what was provided by the argument.
-     *
-     * @param string $body  The body content string
-     * @access public
-     * @return string|AbstractResponse
-     */
-    public function body($body = null)
-    {
-        if (null !== $body) {
-            // Require that the response be unlocked before changing it
-            $this->requireUnlocked();
-
-            $this->body = (string) $body;
-
-            return $this;
+        if (!$validator || !isset(static::$methods[$validator])) {
+            throw new BadMethodCallException('Unknown method '. $method .'()');
         }
 
-        return $this->body;
-    }
+        $validator = static::$methods[$validator];
+        array_unshift($args, $this->str);
 
-    /**
-     * Returns the status object
-     *
-     * @access public
-     * @return \Klein\HttpStatus
-     */
-    public function status()
-    {
-        return $this->status;
-    }
-
-    /**
-     * Returns the headers collection
-     *
-     * @access public
-     * @return \Klein\DataCollection\HeaderDataCollection
-     */
-    public function headers()
-    {
-        return $this->headers;
-    }
-
-    /**
-     * Returns the cookies collection
-     *
-     * @access public
-     * @return \Klein\DataCollection\ResponseCookieDataCollection
-     */
-    public function cookies()
-    {
-        return $this->cookies;
-    }
-
-    /**
-     * Get (or set) the HTTP response code
-     *
-     * Simply calling this method without any arguments returns the current response code.
-     * Calling with an integer argument, however, attempts to set the response code to what
-     * was provided by the argument.
-     *
-     * @param int $code     The HTTP status code to send
-     * @access public
-     * @return int|AbstractResponse
-     */
-    public function code($code = null)
-    {
-        if (null !== $code) {
-            // Require that the response be unlocked before changing it
-            $this->requireUnlocked();
-
-            $this->status = new HttpStatus($code);
-
-            return $this;
+        switch (count($args)) {
+            case 1:
+                $result = $validator($args[0]);
+                break;
+            case 2:
+                $result = $validator($args[0], $args[1]);
+                break;
+            case 3:
+                $result = $validator($args[0], $args[1], $args[2]);
+                break;
+            case 4:
+                $result = $validator($args[0], $args[1], $args[2], $args[3]);
+                break;
+            default:
+                $result = call_user_func_array($validator, $args);
+                break;
         }
 
-        return $this->status->getCode();
-    }
+        $result = (bool)($result ^ $reverse);
 
-    /**
-     * Prepend a string to the response's content body
-     *
-     * @param string $content   The string to prepend
-     * @access public
-     * @return AbstractResponse
-     */
-    public function prepend($content)
-    {
-        // Require that the response be unlocked before changing it
-        $this->requireUnlocked();
-
-        $this->body = $content . $this->body;
-
-        return $this;
-    }
-
-    /**
-     * Append a string to the response's content body
-     *
-     * @param string $content   The string to append
-     * @access public
-     * @return AbstractResponse
-     */
-    public function append($content)
-    {
-        // Require that the response be unlocked before changing it
-        $this->requireUnlocked();
-
-        $this->body .= $content;
-
-        return $this;
-    }
-
-    /**
-     * Check if the response is locked
-     *
-     * @access public
-     * @return boolean
-     */
-    public function isLocked()
-    {
-        return $this->locked;
-    }
-
-    /**
-     * Require that the response is unlocked
-     *
-     * Throws an exception if the response is locked,
-     * preventing any methods from mutating the response
-     * when its locked
-     *
-     * @throws LockedResponseException  If the response is locked
-     * @access public
-     * @return AbstractResponse
-     */
-    public function requireUnlocked()
-    {
-        if ($this->isLocked()) {
-            throw new LockedResponseException('Response is locked');
+        if (false === $this->err) {
+            return $result;
+        } elseif (false === $result) {
+            throw new ValidationException($this->err);
         }
-
-        return $this;
-    }
-
-    /**
-     * Lock the response from further modification
-     *
-     * @access public
-     * @return AbstractResponse
-     */
-    public function lock()
-    {
-        $this->locked = true;
-
-        return $this;
-    }
-
-    /**
-     * Unlock the response from further modification
-     *
-     * @access public
-     * @return AbstractResponse
-     */
-    public function unlock()
-    {
-        $this->locked = false;
-
-        return $this;
-    }
-
-    /**
-     * Generates an HTTP compatible status header line string
-     *
-     * Creates the string based off of the response's properties
-     *
-     * @access protected
-     * @return string
-     */
-    protected function httpStatusLine()
-    {
-        return sprintf('HTTP/%s %s', $this->protocol_version, $this->status);
-    }
-
-    /**
-     * Send our HTTP headers
-     *
-     * @param boolean $cookies_also Whether or not to also send the cookies after sending the normal headers
-     * @param boolean $override     Whether or not to override the check if headers have already been sent
-     * @access public
-     * @return AbstractResponse
-     */
-    public function sendHeaders($cookies_also = true, $override = false)
-    {
-        if (headers_sent() && !$override) {
-            return $this;
-        }
-
-        // Send our HTTP status line
-        header($this->httpStatusLine());
-
-        // Iterate through our Headers data collection and send each header
-        foreach ($this->headers as $key => $value) {
-            header($key .': '. $value, false);
-        }
-
-        if ($cookies_also) {
-            $this->sendCookies($override);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Send our HTTP response cookies
-     *
-     * @param boolean $override     Whether or not to override the check if headers have already been sent
-     * @access public
-     * @return AbstractResponse
-     */
-    public function sendCookies($override = false)
-    {
-        if (headers_sent() && !$override) {
-            return $this;
-        }
-
-        // Iterate through our Cookies data collection and set each cookie natively
-        foreach ($this->cookies as $cookie) {
-            // Use the built-in PHP "setcookie" function
-            setcookie(
-                $cookie->getName(),
-                $cookie->getValue(),
-                $cookie->getExpire(),
-                $cookie->getPath(),
-                $cookie->getDomain(),
-                $cookie->getSecure(),
-                $cookie->getHttpOnly()
-            );
-        }
-
-        return $this;
-    }
-
-    /**
-     * Send our body's contents
-     *
-     * @access public
-     * @return AbstractResponse
-     */
-    public function sendBody()
-    {
-        echo (string) $this->body;
-
-        return $this;
-    }
-
-    /**
-     * Send the response and lock it
-     *
-     * @param boolean $override             Whether or not to override the check if the response has already been sent
-     * @throws ResponseAlreadySentException If the response has already been sent
-     * @access public
-     * @return AbstractResponse
-     */
-    public function send($override = false)
-    {
-        if ($this->sent && !$override) {
-            throw new ResponseAlreadySentException('Response has already been sent');
-        }
-
-        // Send our response data
-        $this->sendHeaders();
-        $this->sendBody();
-
-        // Lock the response from further modification
-        $this->lock();
-
-        // Mark as sent
-        $this->sent = true;
-
-        // If there running FPM, tell the process manager to finish the server request/response handling
-        if (function_exists('fastcgi_finish_request')) {
-            fastcgi_finish_request();
-        }
-
-        return $this;
-    }
-
-    /**
-     * Check if the response has been sent
-     *
-     * @access public
-     * @return boolean
-     */
-    public function isSent()
-    {
-        return $this->sent;
-    }
-
-    /**
-     * Enable response chunking
-     *
-     * @link https://github.com/chriso/klein.php/wiki/Response-Chunking
-     * @link http://bit.ly/hg3gHb
-     * @access public
-     * @return AbstractResponse
-     */
-    public function chunk()
-    {
-        if (false === $this->chunked) {
-            $this->chunked = true;
-            $this->header('Transfer-encoding', 'chunked');
-            flush();
-        }
-
-        if (($body_length = strlen($this->body)) > 0) {
-            printf("%x\r\n", $body_length);
-            $this->sendBody();
-            $this->body('');
-            echo "\r\n";
-            flush();
-        }
-
-        return $this;
-    }
-
-    /**
-     * Sets a response header
-     *
-     * @param string $key       The name of the HTTP response header
-     * @param mixed $value      The value to set the header with
-     * @access public
-     * @return AbstractResponse
-     */
-    public function header($key, $value)
-    {
-        $this->headers->set($key, $value);
-
-        return $this;
-    }
-
-    /**
-     * Sets a response cookie
-     *
-     * @param string $key           The name of the cookie
-     * @param string $value         The value to set the cookie with
-     * @param int $expiry           The time that the cookie should expire
-     * @param string $path          The path of which to restrict the cookie
-     * @param string $domain        The domain of which to restrict the cookie
-     * @param boolean $secure       Flag of whether the cookie should only be sent over a HTTPS connection
-     * @param boolean $httponly     Flag of whether the cookie should only be accessible over the HTTP protocol
-     * @access public
-     * @return AbstractResponse
-     */
-    public function cookie(
-        $key,
-        $value = '',
-        $expiry = null,
-        $path = '/',
-        $domain = null,
-        $secure = false,
-        $httponly = false
-    ) {
-        if (null === $expiry) {
-            $expiry = time() + (3600 * 24 * 30);
-        }
-
-        $this->cookies->set(
-            $key,
-            new ResponseCookie($key, $value, $expiry, $path, $domain, $secure, $httponly)
-        );
-
-        return $this;
-    }
-
-    /**
-     * Tell the browser not to cache the response
-     *
-     * @access public
-     * @return AbstractResponse
-     */
-    public function noCache()
-    {
-        $this->header('Pragma', 'no-cache');
-        $this->header('Cache-Control', 'no-store, no-cache');
-
-        return $this;
-    }
-
-    /**
-     * Redirects the request to another URL
-     *
-     * @param string $url   The URL to redirect to
-     * @param int $code     The HTTP status code to use for redirection
-     * @access public
-     * @return AbstractResponse
-     */
-    public function redirect($url, $code = 302)
-    {
-        $this->code($code);
-        $this->header('Location', $url);
-        $this->lock();
 
         return $this;
     }
 }
 
 
-/* End of src/Klein/AbstractResponse.php */
-
-/* -------------------- */
-
-/* Start of src/Klein/AbstractRouteFactory.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-/**
- * AbstractRouteFactory
- *
- * Abstract class for a factory for building new Route instances
- *
- * @abstract
- * @package     Klein
- */
-abstract class AbstractRouteFactory
-{
-
-    /**
-     * Properties
-     */
-
-    /**
-     * The namespace of which to collect the routes in
-     * when matching, so you can define routes under a
-     * common endpoint
-     *
-     * @var string
-     * @access protected
-     */
-    protected $namespace;
-
-
-    /**
-     * Methods
-     */
-
-    /**
-     * Constructor
-     *
-     * @param string $namespace The initial namespace to set
-     * @access public
-     */
-    public function __construct($namespace = null)
-    {
-        $this->namespace = $namespace;
-    }
-
-    /**
-     * Gets the value of namespace
-     *
-     * @access public
-     * @return string
-     */
-    public function getNamespace()
-    {
-        return $this->namespace;
-    }
-
-    /**
-     * Sets the value of namespace
-     *
-     * @param string $namespace The namespace from which to collect the Routes under
-     * @access public
-     * @return AbstractRouteFactory
-     */
-    public function setNamespace($namespace)
-    {
-        $this->namespace = (string) $namespace;
-
-        return $this;
-    }
-
-    /**
-     * Append a namespace to the current namespace
-     *
-     * @param string $namespace The namespace from which to collect the Routes under
-     * @access public
-     * @return AbstractRouteFactory
-     */
-    public function appendNamespace($namespace)
-    {
-        $this->namespace .= (string) $namespace;
-
-        return $this;
-    }
-
-    /**
-     * Build factory method
-     *
-     * This method should be implemented to return a Route instance
-     *
-     * @param callable $callback    Callable callback method to execute on route match
-     * @param string $path          Route URI path to match
-     * @param string|array $method  HTTP Method to match
-     * @param boolean $count_match  Whether or not to count the route as a match when counting total matches
-     * @param string $name          The name of the route
-     * @abstract
-     * @access public
-     * @return Klein\Route
-     */
-    abstract public function build($callback, $path = null, $method = null, $count_match = true, $name = null);
-}
-
-
-/* End of src/Klein/AbstractRouteFactory.php */
+/* End of src/Klein/Validator.php */
 
 /* -------------------- */
 
@@ -4711,153 +4711,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
 
 /* -------------------- */
 
-/* Start of src/Klein/DataCollection/RouteCollection.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-
-
-/**
- * RouteCollection
- *
- * A DataCollection for Routes
- *
- * @uses        DataCollection
- * @package     Klein\DataCollection
- */
-class RouteCollection extends DataCollection
-{
-
-    /**
-     * Methods
-     */
-
-    /**
-     * Constructor
-     *
-     * @override (doesn't call our parent)
-     * @param array $routes The routes of this collection
-     * @access public
-     */
-    public function __construct(array $routes = array())
-    {
-        foreach ($routes as $value) {
-            $this->add($value);
-        }
-    }
-
-    /**
-     * Set a route
-     *
-     * {@inheritdoc}
-     *
-     * A value may either be a callable or a Route instance
-     * Callable values will be converted into a Route with
-     * the "name" of the route being set from the "key"
-     *
-     * A developer may add a named route to the collection
-     * by passing the name of the route as the "$key" and an
-     * instance of a Route as the "$value"
-     *
-     * @see DataCollection::set()
-     * @param string $key                   The name of the route to set
-     * @param Route|callable $value         The value of the route to set
-     * @access public
-     * @return RouteCollection
-     */
-    public function set($key, $value)
-    {
-        if (!$value instanceof Route) {
-            $value = new Route($value);
-        }
-
-        return parent::set($key, $value);
-    }
-
-    /**
-     * Add a route instance to the collection
-     *
-     * This will auto-generate a name
-     *
-     * @param Route $route
-     * @access public
-     * @return RouteCollection
-     */
-    public function addRoute(Route $route)
-    {
-        /**
-         * Auto-generate a name from the object's hash
-         * This makes it so that we can autogenerate names
-         * that ensure duplicate route instances are overridden
-         */
-        $name = spl_object_hash($route);
-
-        return $this->set($name, $route);
-    }
-
-    /**
-     * Add a route to the collection
-     *
-     * This allows a more generic form that
-     * will take a Route instance, string callable
-     * or any other Route class compatible callback
-     *
-     * @param mixed $route
-     * @access public
-     * @return RouteCollection
-     */
-    public function add($route)
-    {
-        if (!$route instanceof Route) {
-            $route = new Route($route);
-        }
-
-        return $this->addRoute($route);
-    }
-
-    /**
-     * Prepare the named routes in the collection
-     *
-     * This loops through every route to set the collection's
-     * key name for that route to equal the routes name, if
-     * its changed
-     *
-     * @access public
-     * @return RouteCollection
-     */
-    public function prepareNamed()
-    {
-        foreach ($this as $key => $route) {
-            $route_name = $route->getName();
-
-            if (null !== $route_name) {
-                // Remove the route from the collection
-                $this->remove($key);
-
-                // Add the route back to the set with the new name
-                $this->set($route_name, $route);
-            }
-        }
-
-        return $this;
-    }
-}
-
-
-/* End of src/Klein/DataCollection/RouteCollection.php */
-
-/* -------------------- */
-
 /* Start of src/Klein/DataCollection/HeaderDataCollection.php */
 
 /**
@@ -5008,6 +4861,233 @@ class HeaderDataCollection extends DataCollection
 
 /* -------------------- */
 
+/* Start of src/Klein/DataCollection/ResponseCookieDataCollection.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * ResponseCookieDataCollection
+ *
+ * A DataCollection for HTTP response cookies
+ *
+ * @uses        DataCollection
+ * @package     Klein\DataCollection
+ */
+class ResponseCookieDataCollection extends DataCollection
+{
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Constructor
+     *
+     * @override (doesn't call our parent)
+     * @param array $cookies The cookies of this collection
+     * @access public
+     */
+    public function __construct(array $cookies = array())
+    {
+        foreach ($cookies as $key => $value) {
+            $this->set($key, $value);
+        }
+    }
+
+    /**
+     * Set a cookie
+     *
+     * {@inheritdoc}
+     *
+     * A value may either be a string or a ResponseCookie instance
+     * String values will be converted into a ResponseCookie with
+     * the "name" of the cookie being set from the "key"
+     *
+     * Obviously, the developer is free to organize this collection
+     * however they like, and can be more explicit by passing a more
+     * suggested "$key" as the cookie's "domain" and passing in an
+     * instance of a ResponseCookie as the "$value"
+     *
+     * @see DataCollection::set()
+     * @param string $key                   The name of the cookie to set
+     * @param ResponseCookie|string $value  The value of the cookie to set
+     * @access public
+     * @return ResponseCookieDataCollection
+     */
+    public function set($key, $value)
+    {
+        if (!$value instanceof ResponseCookie) {
+            $value = new ResponseCookie($key, $value);
+        }
+
+        return parent::set($key, $value);
+    }
+}
+
+
+/* End of src/Klein/DataCollection/ResponseCookieDataCollection.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/DataCollection/RouteCollection.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * RouteCollection
+ *
+ * A DataCollection for Routes
+ *
+ * @uses        DataCollection
+ * @package     Klein\DataCollection
+ */
+class RouteCollection extends DataCollection
+{
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Constructor
+     *
+     * @override (doesn't call our parent)
+     * @param array $routes The routes of this collection
+     * @access public
+     */
+    public function __construct(array $routes = array())
+    {
+        foreach ($routes as $value) {
+            $this->add($value);
+        }
+    }
+
+    /**
+     * Set a route
+     *
+     * {@inheritdoc}
+     *
+     * A value may either be a callable or a Route instance
+     * Callable values will be converted into a Route with
+     * the "name" of the route being set from the "key"
+     *
+     * A developer may add a named route to the collection
+     * by passing the name of the route as the "$key" and an
+     * instance of a Route as the "$value"
+     *
+     * @see DataCollection::set()
+     * @param string $key                   The name of the route to set
+     * @param Route|callable $value         The value of the route to set
+     * @access public
+     * @return RouteCollection
+     */
+    public function set($key, $value)
+    {
+        if (!$value instanceof Route) {
+            $value = new Route($value);
+        }
+
+        return parent::set($key, $value);
+    }
+
+    /**
+     * Add a route instance to the collection
+     *
+     * This will auto-generate a name
+     *
+     * @param Route $route
+     * @access public
+     * @return RouteCollection
+     */
+    public function addRoute(Route $route)
+    {
+        /**
+         * Auto-generate a name from the object's hash
+         * This makes it so that we can autogenerate names
+         * that ensure duplicate route instances are overridden
+         */
+        $name = spl_object_hash($route);
+
+        return $this->set($name, $route);
+    }
+
+    /**
+     * Add a route to the collection
+     *
+     * This allows a more generic form that
+     * will take a Route instance, string callable
+     * or any other Route class compatible callback
+     *
+     * @param mixed $route
+     * @access public
+     * @return RouteCollection
+     */
+    public function add($route)
+    {
+        if (!$route instanceof Route) {
+            $route = new Route($route);
+        }
+
+        return $this->addRoute($route);
+    }
+
+    /**
+     * Prepare the named routes in the collection
+     *
+     * This loops through every route to set the collection's
+     * key name for that route to equal the routes name, if
+     * its changed
+     *
+     * @access public
+     * @return RouteCollection
+     */
+    public function prepareNamed()
+    {
+        foreach ($this as $key => $route) {
+            $route_name = $route->getName();
+
+            if (null !== $route_name) {
+                // Remove the route from the collection
+                $this->remove($key);
+
+                // Add the route back to the set with the new name
+                $this->set($route_name, $route);
+            }
+        }
+
+        return $this;
+    }
+}
+
+
+/* End of src/Klein/DataCollection/RouteCollection.php */
+
+/* -------------------- */
+
 /* Start of src/Klein/DataCollection/ServerDataCollection.php */
 
 /**
@@ -5126,86 +5206,6 @@ class ServerDataCollection extends DataCollection
 
 /* -------------------- */
 
-/* Start of src/Klein/DataCollection/ResponseCookieDataCollection.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-
-
-/**
- * ResponseCookieDataCollection
- *
- * A DataCollection for HTTP response cookies
- *
- * @uses        DataCollection
- * @package     Klein\DataCollection
- */
-class ResponseCookieDataCollection extends DataCollection
-{
-
-    /**
-     * Methods
-     */
-
-    /**
-     * Constructor
-     *
-     * @override (doesn't call our parent)
-     * @param array $cookies The cookies of this collection
-     * @access public
-     */
-    public function __construct(array $cookies = array())
-    {
-        foreach ($cookies as $key => $value) {
-            $this->set($key, $value);
-        }
-    }
-
-    /**
-     * Set a cookie
-     *
-     * {@inheritdoc}
-     *
-     * A value may either be a string or a ResponseCookie instance
-     * String values will be converted into a ResponseCookie with
-     * the "name" of the cookie being set from the "key"
-     *
-     * Obviously, the developer is free to organize this collection
-     * however they like, and can be more explicit by passing a more
-     * suggested "$key" as the cookie's "domain" and passing in an
-     * instance of a ResponseCookie as the "$value"
-     *
-     * @see DataCollection::set()
-     * @param string $key                   The name of the cookie to set
-     * @param ResponseCookie|string $value  The value of the cookie to set
-     * @access public
-     * @return ResponseCookieDataCollection
-     */
-    public function set($key, $value)
-    {
-        if (!$value instanceof ResponseCookie) {
-            $value = new ResponseCookie($key, $value);
-        }
-
-        return parent::set($key, $value);
-    }
-}
-
-
-/* End of src/Klein/DataCollection/ResponseCookieDataCollection.php */
-
-/* -------------------- */
-
 } /* end of namespace Klein\DataCollection */
 
 namespace Klein\Exceptions {
@@ -5214,7 +5214,7 @@ use OverflowException;
 use RuntimeException;
 use UnexpectedValueException;
 
-/* Start of src/Klein/Exceptions/UnhandledException.php */
+/* Start of src/Klein/Exceptions/KleinExceptionInterface.php */
 
 /**
  * Klein (klein.php) - A lightning fast router for PHP
@@ -5228,55 +5228,24 @@ use UnexpectedValueException;
 
 
 
-
-
 /**
- * UnhandledException
+ * KleinExceptionInterface
  *
- * Exception used for when a exception isn't correctly handled by the Klein error callbacks
- * 
- * @uses       Exception
+ * Exception interface that Klein's exceptions should implement
+ *
+ * This is mostly for having a simple, common Interface class/namespace
+ * that can be type-hinted/instance-checked against, therefore making it
+ * easier to handle Klein exceptions while still allowing the different
+ * exception classes to properly extend the corresponding SPL Exception type
+ *
  * @package    Klein\Exceptions
  */
-class UnhandledException extends RuntimeException implements KleinExceptionInterface
+interface KleinExceptionInterface
 {
 }
 
 
-/* End of src/Klein/Exceptions/UnhandledException.php */
-
-/* -------------------- */
-
-/* Start of src/Klein/Exceptions/ValidationException.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-
-
-/**
- * ValidationException 
- *
- * Exception used for Validation errors
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
- */
-class ValidationException extends UnexpectedValueException implements KleinExceptionInterface
-{
-}
-
-
-/* End of src/Klein/Exceptions/ValidationException.php */
+/* End of src/Klein/Exceptions/KleinExceptionInterface.php */
 
 /* -------------------- */
 
@@ -5380,7 +5349,7 @@ class DispatchHaltedException extends RuntimeException implements KleinException
 
 /* -------------------- */
 
-/* Start of src/Klein/Exceptions/UnknownServiceException.php */
+/* Start of src/Klein/Exceptions/DuplicateServiceException.php */
 
 /**
  * Klein (klein.php) - A lightning fast router for PHP
@@ -5397,19 +5366,19 @@ class DispatchHaltedException extends RuntimeException implements KleinException
 
 
 /**
- * UnknownServiceException
+ * DuplicateServiceException
  *
- * Exception used for when a service was called that doesn't exist
+ * Exception used for when a service is attempted to be registered that already exists
  * 
  * @uses       Exception
  * @package    Klein\Exceptions
  */
-class UnknownServiceException extends OutOfBoundsException implements KleinExceptionInterface
+class DuplicateServiceException extends OverflowException implements KleinExceptionInterface
 {
 }
 
 
-/* End of src/Klein/Exceptions/UnknownServiceException.php */
+/* End of src/Klein/Exceptions/DuplicateServiceException.php */
 
 /* -------------------- */
 
@@ -5446,74 +5415,6 @@ class LockedResponseException extends RuntimeException implements KleinException
 
 /* -------------------- */
 
-/* Start of src/Klein/Exceptions/KleinExceptionInterface.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-/**
- * KleinExceptionInterface
- *
- * Exception interface that Klein's exceptions should implement
- *
- * This is mostly for having a simple, common Interface class/namespace
- * that can be type-hinted/instance-checked against, therefore making it
- * easier to handle Klein exceptions while still allowing the different
- * exception classes to properly extend the corresponding SPL Exception type
- *
- * @package    Klein\Exceptions
- */
-interface KleinExceptionInterface
-{
-}
-
-
-/* End of src/Klein/Exceptions/KleinExceptionInterface.php */
-
-/* -------------------- */
-
-/* Start of src/Klein/Exceptions/DuplicateServiceException.php */
-
-/**
- * Klein (klein.php) - A lightning fast router for PHP
- *
- * @author      Chris O'Hara <cohara87@gmail.com>
- * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
- * @copyright   (c) Chris O'Hara
- * @link        https://github.com/chriso/klein.php
- * @license     MIT
- */
-
-
-
-
-
-/**
- * DuplicateServiceException
- *
- * Exception used for when a service is attempted to be registered that already exists
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
- */
-class DuplicateServiceException extends OverflowException implements KleinExceptionInterface
-{
-}
-
-
-/* End of src/Klein/Exceptions/DuplicateServiceException.php */
-
-/* -------------------- */
-
 /* Start of src/Klein/Exceptions/ResponseAlreadySentException.php */
 
 /**
@@ -5544,6 +5445,105 @@ class ResponseAlreadySentException extends RuntimeException implements KleinExce
 
 
 /* End of src/Klein/Exceptions/ResponseAlreadySentException.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/Exceptions/UnhandledException.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * UnhandledException
+ *
+ * Exception used for when a exception isn't correctly handled by the Klein error callbacks
+ * 
+ * @uses       Exception
+ * @package    Klein\Exceptions
+ */
+class UnhandledException extends RuntimeException implements KleinExceptionInterface
+{
+}
+
+
+/* End of src/Klein/Exceptions/UnhandledException.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/Exceptions/UnknownServiceException.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * UnknownServiceException
+ *
+ * Exception used for when a service was called that doesn't exist
+ * 
+ * @uses       Exception
+ * @package    Klein\Exceptions
+ */
+class UnknownServiceException extends OutOfBoundsException implements KleinExceptionInterface
+{
+}
+
+
+/* End of src/Klein/Exceptions/UnknownServiceException.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/Exceptions/ValidationException.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * ValidationException 
+ *
+ * Exception used for Validation errors
+ * 
+ * @uses       Exception
+ * @package    Klein\Exceptions
+ */
+class ValidationException extends UnexpectedValueException implements KleinExceptionInterface
+{
+}
+
+
+/* End of src/Klein/Exceptions/ValidationException.php */
 
 /* -------------------- */
 

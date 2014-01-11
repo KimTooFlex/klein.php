@@ -23,6 +23,20 @@ foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, File
     $aNamespaces[$ns][$fname] = $php;
 }
 
+
+
+
+/*
+//Printing $aNamespaces
+foreach (array_keys($aNamespaces) as $ns) {
+    foreach (array_keys($aNamespaces[$ns]) as $file) {
+        $aNamespaces[$ns][$file]["out"] = "(file content)";
+    }
+}
+print_r($aNamespaces);
+exit(0);
+*/
+
 /*
 $aNamespaces: Array(
 [Klein] => Array
@@ -175,15 +189,24 @@ foreach ($aNamespaces as $namespace=>$files) {
     // $files: all the files for that namespace
 
     // compute the list of all used namespaces in those files
+    // the files defining interfaces
+    // the other files
+    $interfaceFiles = array();
+    $otherFiles = array();
     $aUses = array();
     foreach ($files as $filename=>$php) {
         $aUses = array_merge($aUses, $php["uses"]);
+        if (isset($php["interface"]) && strlen($php["interface"])) {
+            $interfaceFiles[$filename] = $php;
+        } else {
+            $otherFiles[$filename] = $php;
+        }
     }
     sort($aUses);
 
-    //ksort($files);
-    // or maybe kusort by file length
-    uksort($files, function($a,$b){return strlen($a)>strlen($b);});
+    uksort($interfaceFiles, function($a, $b)use($interfaceFiles){return strcmp($interfaceFiles[$a]["interface"], $interfaceFiles[$b]["interface"]);});
+    uksort($otherFiles,     function($a, $b){return strcmp($a, $b);});
+    $files = $interfaceFiles + $otherFiles;
 
     // output code
 
@@ -218,6 +241,7 @@ function processFile($filename) {
     $aInstrs = array();
     $out = "";
     $namespace = "";
+    $interface = "";
     $aUses = array();
 
     $instr = array();
@@ -245,7 +269,15 @@ function processFile($filename) {
                         }
                         $ret = "";
                         $instr = array();
-                        continue; // skip
+                        continue; // skip : do not yield "namespace" in the output
+                    } elseif (in_array(strtolower($instr[0]), array("interface"))) {
+                        $intf = join(array_slice($instr, 1, -1)); // skip "interface" and ";" produce "HttpExceptionInterfaceextendsKleinExceptionInterface"
+                        if ("" !== $interface) {
+                            // does not handle file with multiple interfaces
+                            throw new Exception("Multiple interface file");
+                        } else {
+                            $interface = $intf;
+                        }
                     }
                     $aInstrs[] = join(" ", $instr);
                     $instr = array();
@@ -293,5 +325,5 @@ function processFile($filename) {
         throw new Exception("File $filename does not end with T_CLOSE_TAG");
     }
 
-    return array("filename"=>$filename, "namespace"=>$namespace, "uses"=>$aUses, "out"=>$out);
+    return array("filename"=>$filename, "namespace"=>$namespace, "interface"=>$interface, "uses"=>$aUses, "out"=>$out);
 }
