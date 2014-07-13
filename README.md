@@ -107,6 +107,7 @@ getUrlExt('posts_do', array('action' => "edit"), true);            // "/posts/ed
 ### View helpers:
 The folowing view helpers are automatically added:
 
+*  $rs->e(): shortcut for htmlentities()
 *  $rs->h(): shortcut for htmlspecialchars_decode()
 *  $rs->renderJSON(): exits and render a string/array with a custom http code
 *  $rs->urlPrefix(): returns the host part of the url

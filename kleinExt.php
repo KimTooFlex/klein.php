@@ -228,6 +228,7 @@ abstract class KleinExtController {
 
 /**
  * Useful helpers:
+ * $rs->e(): shortcut for htmlentities()
  * $rs->h(): shortcut for htmlspecialchars_decode()
  * $rs->renderJSON()
  * $rs->urlScheme(): http|https
@@ -238,6 +239,7 @@ abstract class KleinExtController {
  * $rs->redirect(): handle getenv("BASE_URL")
  */
 respondExt(function( _Request $rq, _Response $rs, _App $ap){
+    $rs->e = function($s) { return htmlentities($s, ENT_QUOTES, "UTF-8"); };
     $rs->h = function($s) { return htmlspecialchars_decode($s, ENT_QUOTES); };
 
     /**
@@ -265,49 +267,48 @@ respondExt(function( _Request $rq, _Response $rs, _App $ap){
         if (null===$statusText) {
             // use default statusText
             switch ($statusCode) {
-                case 100: $text = 'Continue'; break;
-                case 101: $text = 'Switching Protocols'; break;
-                case 200: $text = 'OK'; break;
-                case 201: $text = 'Created'; break;
-                case 202: $text = 'Accepted'; break;
-                case 203: $text = 'Non-Authoritative Information'; break;
-                case 204: $text = 'No Content'; break;
-                case 205: $text = 'Reset Content'; break;
-                case 206: $text = 'Partial Content'; break;
-                case 300: $text = 'Multiple Choices'; break;
-                case 301: $text = 'Moved Permanently'; break;
-                case 302: $text = 'Moved Temporarily'; break;
-                case 303: $text = 'See Other'; break;
-                case 304: $text = 'Not Modified'; break;
-                case 305: $text = 'Use Proxy'; break;
-                case 400: $text = 'Bad Request'; break;
-                case 401: $text = 'Unauthorized'; break;
-                case 402: $text = 'Payment Required'; break;
-                case 403: $text = 'Forbidden'; break;
-                case 404: $text = 'Not Found'; break;
-                case 405: $text = 'Method Not Allowed'; break;
-                case 406: $text = 'Not Acceptable'; break;
-                case 407: $text = 'Proxy Authentication Required'; break;
-                case 408: $text = 'Request Time-out'; break;
-                case 409: $text = 'Conflict'; break;
-                case 410: $text = 'Gone'; break;
-                case 411: $text = 'Length Required'; break;
-                case 412: $text = 'Precondition Failed'; break;
-                case 413: $text = 'Request Entity Too Large'; break;
-                case 414: $text = 'Request-URI Too Large'; break;
-                case 415: $text = 'Unsupported Media Type'; break;
-                case 500: $text = 'Internal Server Error'; break;
-                case 501: $text = 'Not Implemented'; break;
-                case 502: $text = 'Bad Gateway'; break;
-                case 503: $text = 'Service Unavailable'; break;
-                case 504: $text = 'Gateway Time-out'; break;
-                case 505: $text = 'HTTP Version not supported'; break;
-                default:  $text = 'Unknwown status code';
+                case 100: $statusText = 'Continue'; break;
+                case 101: $statusText = 'Switching Protocols'; break;
+                case 200: $statusText = 'OK'; break;
+                case 201: $statusText = 'Created'; break;
+                case 202: $statusText = 'Accepted'; break;
+                case 203: $statusText = 'Non-Authoritative Information'; break;
+                case 204: $statusText = 'No Content'; break;
+                case 205: $statusText = 'Reset Content'; break;
+                case 206: $statusText = 'Partial Content'; break;
+                case 300: $statusText = 'Multiple Choices'; break;
+                case 301: $statusText = 'Moved Permanently'; break;
+                case 302: $statusText = 'Moved Temporarily'; break;
+                case 303: $statusText = 'See Other'; break;
+                case 304: $statusText = 'Not Modified'; break;
+                case 305: $statusText = 'Use Proxy'; break;
+                case 400: $statusText = 'Bad Request'; break;
+                case 401: $statusText = 'Unauthorized'; break;
+                case 402: $statusText = 'Payment Required'; break;
+                case 403: $statusText = 'Forbidden'; break;
+                case 404: $statusText = 'Not Found'; break;
+                case 405: $statusText = 'Method Not Allowed'; break;
+                case 406: $statusText = 'Not Acceptable'; break;
+                case 407: $statusText = 'Proxy Authentication Required'; break;
+                case 408: $statusText = 'Request Time-out'; break;
+                case 409: $statusText = 'Conflict'; break;
+                case 410: $statusText = 'Gone'; break;
+                case 411: $statusText = 'Length Required'; break;
+                case 412: $statusText = 'Precondition Failed'; break;
+                case 413: $statusText = 'Request Entity Too Large'; break;
+                case 414: $statusText = 'Request-URI Too Large'; break;
+                case 415: $statusText = 'Unsupported Media Type'; break;
+                case 500: $statusText = 'Internal Server Error'; break;
+                case 501: $statusText = 'Not Implemented'; break;
+                case 502: $statusText = 'Bad Gateway'; break;
+                case 503: $statusText = 'Service Unavailable'; break;
+                case 504: $statusText = 'Gateway Time-out'; break;
+                case 505: $statusText = 'HTTP Version not supported'; break;
+                default:  $statusText = 'Unknwown status code';
             }
-            $statusText = ' ' . $text;
         }
 
-        header("HTTP/1.1 $statusCode$statusText");
+        header("HTTP/1.1 $statusCode" . ((strlen($statusText)) ? (" $statusText") : ("")) );
 
         if (is_string($out)) {
             $rs->header('Content-type: text/plain; charset=UTF-8');
