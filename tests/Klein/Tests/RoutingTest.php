@@ -1719,7 +1719,7 @@ class RoutingTest extends AbstractKleinTest
         );
         $this->klein_app->respond(
             function ($a, $b, $c, $d, $klein_app) {
-                $klein_app->abort(404);
+                $klein_app->abort();
                 echo '2,';
             }
         );
@@ -1734,15 +1734,9 @@ class RoutingTest extends AbstractKleinTest
         $this->assertSame(404, $this->klein_app->response()->code());
     }
 
-    public function testDispatchAbortCallsHttpError()
+    public function testDispatchAbortWithCode()
     {
-        $this->expectOutputString('1,aborted');
-
-        $this->klein_app->onHttpError(
-            function ($code, $klein_app) {
-                echo 'aborted';
-            }
-        );
+        $this->expectOutputString('1,');
 
         $this->klein_app->respond(
             function ($a, $b, $c, $d, $klein_app) {
@@ -1766,8 +1760,42 @@ class RoutingTest extends AbstractKleinTest
         $this->assertSame(404, $this->klein_app->response()->code());
     }
 
+    public function testDispatchAbortCallsHttpError()
+    {
+        $test_code = 666;
+        $this->expectOutputString('1,aborted,'. $test_code);
+
+        $this->klein_app->onHttpError(
+            function ($code, $klein_app) {
+                echo 'aborted,';
+                echo $code;
+            }
+        );
+
+        $this->klein_app->respond(
+            function ($a, $b, $c, $d, $klein_app) {
+                echo '1,';
+            }
+        );
+        $this->klein_app->respond(
+            function ($a, $b, $c, $d, $klein_app) use ($test_code) {
+                $klein_app->abort($test_code);
+                echo '2,';
+            }
+        );
+        $this->klein_app->respond(
+            function ($a, $b, $c, $d, $klein_app) {
+                echo '3,';
+            }
+        );
+
+        $this->klein_app->dispatch();
+
+        $this->assertSame($test_code, $this->klein_app->response()->code());
+    }
+
     /**
-     * @expectedException Klein\Exceptions\DispatchHaltedException
+     * @expectedException Klein\Exceptions\UnhandledException
      */
     public function testDispatchExceptionRethrowsUnknownCode()
     {
