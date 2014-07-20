@@ -15,11 +15,13 @@ use \Exception;
 use \OutOfBoundsException;
 
 use \Klein\DataCollection\RouteCollection;
-use \Klein\Exceptions\LockedResponseException;
-use \Klein\Exceptions\UnhandledException;
 use \Klein\Exceptions\DispatchHaltedException;
 use \Klein\Exceptions\HttpException;
 use \Klein\Exceptions\HttpExceptionInterface;
+use \Klein\Exceptions\LockedResponseException;
+use \Klein\Exceptions\RegularExpressionCompilationException;
+use \Klein\Exceptions\RoutePathCompilationException;
+use \Klein\Exceptions\UnhandledException;
 
 /**
  * Klein
@@ -489,7 +491,11 @@ class Klein
                 } elseif (($path === '404' && $matched->isEmpty() && count($methods_matched) <= 0)
                        || ($path === '405' && $matched->isEmpty() && count($methods_matched) > 0)) {
 
-                    // Easily handle 40x's
+                    // Warn user of deprecation
+                    trigger_error(
+                        'Use of 404/405 "routes" is deprecated. Use $klein->onHttpError() instead.',
+                        E_USER_DEPRECATED
+                    );
                     // TODO: Possibly remove in future, here for backwards compatibility
                     $this->onHttpError($route);
 
@@ -528,15 +534,19 @@ class Klein
                         $expression .= $path[$i++];
                     }
 
-                    // Check if there's a cached regex string
-                    if (false !== $apc) {
-                        $regex = apc_fetch("route:$expression");
-                        if (false === $regex) {
+                    try {
+                        // Check if there's a cached regex string
+                        if (false !== $apc) {
+                            $regex = apc_fetch("route:$expression");
+                            if (false === $regex) {
+                                $regex = $this->compileRoute($expression);
+                                apc_store("route:$expression", $regex);
+                            }
+                        } else {
                             $regex = $this->compileRoute($expression);
-                            apc_store("route:$expression", $regex);
                         }
-                    } else {
-                        $regex = $this->compileRoute($expression);
+                    } catch (RegularExpressionCompilationException $e) {
+                        throw RoutePathCompilationException::createFromRoute($route, $e);
                     }
 
                     $match = preg_match($regex, $uri, $params);
@@ -721,7 +731,51 @@ class Klein
             }
         }
 
-        return "`^$route$`";
+        $regex = "`^$route$`";
+
+        // Check if our regular expression is valid
+        $this->validateRegularExpression($regex);
+
+        return $regex;
+    }
+
+    /**
+     * Validate a regular expression
+     *
+     * This simply checks if the regular expression is able to be compiled
+     * and converts any warnings or notices in the compilation to an exception
+     *
+     * @param string $regex                          The regular expression to validate
+     * @throws RegularExpressionCompilationException If the expression can't be compiled
+     * @access private
+     * @return boolean
+     */
+    private function validateRegularExpression($regex)
+    {
+        $error_string = null;
+
+        // Set an error handler temporarily
+        set_error_handler(
+            function ($errno, $errstr) use (&$error_string) {
+                $error_string = $errstr;
+            },
+            E_NOTICE | E_WARNING
+        );
+
+        if (false === preg_match($regex, null) || !empty($error_string)) {
+            // Remove our temporary error handler
+            restore_error_handler();
+
+            throw new RegularExpressionCompilationException(
+                $error_string,
+                preg_last_error()
+            );
+        }
+
+        // Remove our temporary error handler
+        restore_error_handler();
+
+        return true;
     }
 
     /**

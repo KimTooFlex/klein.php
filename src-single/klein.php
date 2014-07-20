@@ -15,7 +15,9 @@ use Klein\Exceptions\DuplicateServiceException;
 use Klein\Exceptions\HttpException;
 use Klein\Exceptions\HttpExceptionInterface;
 use Klein\Exceptions\LockedResponseException;
+use Klein\Exceptions\RegularExpressionCompilationException;
 use Klein\Exceptions\ResponseAlreadySentException;
+use Klein\Exceptions\RoutePathCompilationException;
 use Klein\Exceptions\UnhandledException;
 use Klein\Exceptions\UnknownServiceException;
 use Klein\Exceptions\ValidationException;
@@ -1077,6 +1079,8 @@ class HttpStatus
 
 
 
+
+
 /**
  * Klein
  *
@@ -1545,7 +1549,11 @@ class Klein
                 } elseif (($path === '404' && $matched->isEmpty() && count($methods_matched) <= 0)
                        || ($path === '405' && $matched->isEmpty() && count($methods_matched) > 0)) {
 
-                    // Easily handle 40x's
+                    // Warn user of deprecation
+                    trigger_error(
+                        'Use of 404/405 "routes" is deprecated. Use $klein->onHttpError() instead.',
+                        E_USER_DEPRECATED
+                    );
                     // TODO: Possibly remove in future, here for backwards compatibility
                     $this->onHttpError($route);
 
@@ -1584,15 +1592,19 @@ class Klein
                         $expression .= $path[$i++];
                     }
 
-                    // Check if there's a cached regex string
-                    if (false !== $apc) {
-                        $regex = apc_fetch("route:$expression");
-                        if (false === $regex) {
+                    try {
+                        // Check if there's a cached regex string
+                        if (false !== $apc) {
+                            $regex = apc_fetch("route:$expression");
+                            if (false === $regex) {
+                                $regex = $this->compileRoute($expression);
+                                apc_store("route:$expression", $regex);
+                            }
+                        } else {
                             $regex = $this->compileRoute($expression);
-                            apc_store("route:$expression", $regex);
                         }
-                    } else {
-                        $regex = $this->compileRoute($expression);
+                    } catch (RegularExpressionCompilationException $e) {
+                        throw RoutePathCompilationException::createFromRoute($route, $e);
                     }
 
                     $match = preg_match($regex, $uri, $params);
@@ -1777,7 +1789,51 @@ class Klein
             }
         }
 
-        return "`^$route$`";
+        $regex = "`^$route$`";
+
+        // Check if our regular expression is valid
+        $this->validateRegularExpression($regex);
+
+        return $regex;
+    }
+
+    /**
+     * Validate a regular expression
+     *
+     * This simply checks if the regular expression is able to be compiled
+     * and converts any warnings or notices in the compilation to an exception
+     *
+     * @param string $regex                          The regular expression to validate
+     * @throws RegularExpressionCompilationException If the expression can't be compiled
+     * @access private
+     * @return boolean
+     */
+    private function validateRegularExpression($regex)
+    {
+        $error_string = null;
+
+        // Set an error handler temporarily
+        set_error_handler(
+            function ($errno, $errstr) use (&$error_string) {
+                $error_string = $errstr;
+            },
+            E_NOTICE | E_WARNING
+        );
+
+        if (false === preg_match($regex, null) || !empty($error_string)) {
+            // Remove our temporary error handler
+            restore_error_handler();
+
+            throw new RegularExpressionCompilationException(
+                $error_string,
+                preg_last_error()
+            );
+        }
+
+        // Remove our temporary error handler
+        restore_error_handler();
+
+        return true;
     }
 
     /**
@@ -5359,6 +5415,8 @@ class ServerDataCollection extends DataCollection
 } /* end of namespace Klein\DataCollection */
 
 namespace Klein\Exceptions {
+use Exception;
+use Klein\Route;
 use OutOfBoundsException;
 use OverflowException;
 use RuntimeException;
@@ -5645,6 +5703,39 @@ class LockedResponseException extends RuntimeException implements KleinException
 
 /* -------------------- */
 
+/* Start of src/Klein/Exceptions/RegularExpressionCompilationException.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+/**
+ * RegularExpressionCompilationException
+ *
+ * Exception used for when a regular expression fails to compile
+ * 
+ * @uses       Exception
+ * @package    Klein\Exceptions
+ */
+class RegularExpressionCompilationException extends RuntimeException implements KleinExceptionInterface
+{
+}
+
+
+/* End of src/Klein/Exceptions/RegularExpressionCompilationException.php */
+
+/* -------------------- */
+
 /* Start of src/Klein/Exceptions/ResponseAlreadySentException.php */
 
 /**
@@ -5675,6 +5766,126 @@ class ResponseAlreadySentException extends RuntimeException implements KleinExce
 
 
 /* End of src/Klein/Exceptions/ResponseAlreadySentException.php */
+
+/* -------------------- */
+
+/* Start of src/Klein/Exceptions/RoutePathCompilationException.php */
+
+/**
+ * Klein (klein.php) - A lightning fast router for PHP
+ *
+ * @author      Chris O'Hara <cohara87@gmail.com>
+ * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
+ * @copyright   (c) Chris O'Hara
+ * @link        https://github.com/chriso/klein.php
+ * @license     MIT
+ */
+
+
+
+
+
+
+
+/**
+ * RoutePathCompilationException
+ *
+ * Exception used for when a route's path fails to compile
+ * 
+ * @uses       Exception
+ * @package    Klein\Exceptions
+ */
+class RoutePathCompilationException extends RuntimeException implements KleinExceptionInterface
+{
+
+    /**
+     * Constants
+     */
+
+    /**
+     * The exception message format
+     *
+     * @const string
+     */
+    const MESSAGE_FORMAT = 'Route failed to compile with path "%s".';
+
+    /**
+     * The extra failure message format
+     *
+     * @const string
+     */
+    const FAILURE_MESSAGE_TITLE_FORMAT = 'Failed with message: "%s"';
+
+
+    /**
+     * Properties
+     */
+
+    /**
+     * The route that failed to compile
+     *
+     * @var Route
+     * @access protected
+     */
+    protected $route;
+
+
+    /**
+     * Methods
+     */
+
+    /**
+     * Create a RoutePathCompilationException from a route
+     * and an optional previous exception
+     *
+     * @param Route $route          The route that failed to compile
+     * @param Exception $previous   The previous exception
+     * @static
+     * @access public
+     * @return RoutePathCompilationException
+     */
+    public static function createFromRoute(Route $route, Exception $previous = null)
+    {
+        $error = (null !== $previous) ? $previous->getMessage() : null;
+        $code  = (null !== $previous) ? $previous->getCode() : null;
+
+        $message = sprintf(static::MESSAGE_FORMAT, $route->getPath());
+        $message .= ' '. sprintf(static::FAILURE_MESSAGE_TITLE_FORMAT, $error);
+
+        $exception = new static($message, $code, $previous);
+        $exception->setRoute($route);
+
+        return $exception;
+    }
+
+    /**
+     * Gets the value of route
+     *
+     * @sccess public
+     * @return Route
+     */
+    public function getRoute()
+    {
+        return $this->route;
+    }
+
+    /**
+     * Sets the value of route
+     *
+     * @param Route The route that failed to compile
+     * @sccess protected
+     * @return RoutePathCompilationException
+     */
+    protected function setRoute(Route $route)
+    {
+        $this->route = $route;
+
+        return $this;
+    }
+}
+
+
+/* End of src/Klein/Exceptions/RoutePathCompilationException.php */
 
 /* -------------------- */
 

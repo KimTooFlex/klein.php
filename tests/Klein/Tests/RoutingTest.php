@@ -16,9 +16,11 @@ use Klein\App;
 use Klein\DataCollection\RouteCollection;
 use Klein\Exceptions\DispatchHaltedException;
 use Klein\Exceptions\HttpException;
+use Klein\Exceptions\RoutePathCompilationException;
 use Klein\Klein;
 use Klein\Request;
 use Klein\Response;
+use Klein\Route;
 use Klein\ServiceProvider;
 use Klein\Tests\Mocks\HeadersEcho;
 use Klein\Tests\Mocks\HeadersSave;
@@ -464,15 +466,17 @@ class RoutingTest extends AbstractKleinTest
     {
         $this->expectOutputString("b404\n");
 
+        $this->klein_app->onHttpError(
+            function ($code) {
+                if (404 === $code) {
+                    echo "404\n";
+                }
+            }
+        );
+
         $this->klein_app->respond(
             function () {
                 echo 'b';
-            }
-        );
-        $this->klein_app->respond(
-            404,
-            function () {
-                echo "404\n";
             }
         );
 
@@ -546,16 +550,18 @@ class RoutingTest extends AbstractKleinTest
     {
         $this->expectOutputString("404\n");
 
+        $this->klein_app->onHttpError(
+            function ($code) {
+                if (404 === $code) {
+                    echo "404\n";
+                }
+            }
+        );
+
         $this->klein_app->respond(
             '/',
             function () {
                 echo 'a';
-            }
-        );
-        $this->klein_app->respond(
-            404,
-            function () {
-                echo "404\n";
             }
         );
 
@@ -602,16 +608,18 @@ class RoutingTest extends AbstractKleinTest
     {
         $this->expectOutputString('404 Code');
 
+        $this->klein_app->onHttpError(
+            function ($code) {
+                if (404 === $code) {
+                    echo '404 Code';
+                }
+            }
+        );
+
         $this->klein_app->respond(
             '/[i:age]',
             function ($request) {
                 var_dump($request->param('age'));
-            }
-        );
-        $this->klein_app->respond(
-            '404',
-            function () {
-                echo '404 Code';
             }
         );
 
@@ -798,15 +806,17 @@ class RoutingTest extends AbstractKleinTest
     {
         $this->expectOutputString('d404 Code');
 
+        $this->klein_app->onHttpError(
+            function ($code) {
+                if (404 === $code) {
+                    echo '404 Code';
+                }
+            }
+        );
+
         $this->klein_app->respond(
             function () {
                 echo "d";
-            }
-        );
-        $this->klein_app->respond(
-            '404',
-            function () {
-                echo '404 Code';
             }
         );
 
@@ -836,9 +846,15 @@ class RoutingTest extends AbstractKleinTest
             }
         );
 
+        // Ignore our deprecation error
+        $old_error_val = error_reporting();
+        error_reporting(E_ALL ^ E_USER_DEPRECATED);
+
         $this->klein_app->dispatch(
             MockRequestFactory::create('/notroute')
         );
+
+        error_reporting($old_error_val);
     }
 
     public function testMethodCatchAll()
@@ -1124,10 +1140,12 @@ class RoutingTest extends AbstractKleinTest
                 );
             }
         );
-        $this->klein_app->respond(
-            404,
-            function ($request, $response) {
-                echo "404";
+
+        $this->klein_app->onHttpError(
+            function ($code) {
+                if (404 === $code) {
+                    echo "404";
+                }
             }
         );
 
@@ -1266,9 +1284,15 @@ class RoutingTest extends AbstractKleinTest
             }
         );
 
+        // Ignore our deprecation error
+        $old_error_val = error_reporting();
+        error_reporting(E_ALL ^ E_USER_DEPRECATED);
+
         $this->klein_app->dispatch(
             MockRequestFactory::create('/sure', 'DELETE')
         );
+
+        error_reporting($old_error_val);
 
         $this->assertCount(2, $resultArray);
         $this->assertContains('GET', $resultArray);
@@ -1681,6 +1705,14 @@ class RoutingTest extends AbstractKleinTest
     {
         $this->expectOutputString('404');
 
+        $this->klein_app->onHttpError(
+            function ($code) {
+                if (404 === $code) {
+                    echo '404';
+                }
+            }
+        );
+
         $this->klein_app->respond(
             'POST',
             '/steez',
@@ -1694,12 +1726,6 @@ class RoutingTest extends AbstractKleinTest
             '/nope',
             function ($a, $b, $c, $d, $klein_app) {
                 echo 'How did I get here?!';
-            }
-        );
-        $this->klein_app->respond(
-            '404',
-            function ($a, $b, $c, $d, $klein_app) {
-                echo '404';
             }
         );
 
@@ -2174,7 +2200,7 @@ class RoutingTest extends AbstractKleinTest
         $this->assertSame(200, $this->klein_app->response()->code());
     }
 
-    public function testSendCallsFastCGIFinishRequest()
+    public function testApcDependencyFailsGracefully()
     {
         // Custom apc function
         implement_custom_apc_cache_functions();
@@ -2189,5 +2215,38 @@ class RoutingTest extends AbstractKleinTest
             MockRequestFactory::create('/test')
         );
         $this->assertSame(200, $this->klein_app->response()->code());
+    }
+
+    public function testRoutePathCompilationFailure()
+    {
+        $this->klein_app->respond(
+            '/users/[i:id]/friends/[i:id]/',
+            function () {
+                echo 'yup';
+            }
+        );
+
+        $exception = null;
+
+        try {
+            $this->klein_app->dispatch(
+                MockRequestFactory::create('/users/1738197/friends/7828316')
+            );
+        } catch (\Exception $e) {
+            $exception = $e->getPrevious();
+        }
+
+        $this->assertTrue($exception instanceof RoutePathCompilationException);
+        $this->assertTrue($exception->getRoute() instanceof Route);
+    }
+
+    public function testRoutePathCompilationFailureWithoutWarnings()
+    {
+        $old_error_val = error_reporting();
+        error_reporting(E_ALL ^ E_NOTICE ^ E_WARNING);
+
+        $this->testRoutePathCompilationFailure();
+
+        error_reporting($old_error_val);
     }
 }
