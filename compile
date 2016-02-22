@@ -1,1 +1,2 @@
 php compile.php > src-single/klein.php
+./vendor/bin/phpunit
