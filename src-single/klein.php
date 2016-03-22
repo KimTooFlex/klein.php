@@ -23,6 +23,8 @@ use Klein\Exceptions\UnknownServiceException;
 use Klein\Exceptions\ValidationException;
 use Klein\ResponseCookie;
 use OutOfBoundsException;
+use SplQueue;
+use SplStack;
 
 /* Start of src/Klein/AbstractResponse.php */
 
@@ -685,7 +687,7 @@ abstract class AbstractRouteFactory
 
 
 /**
- * App 
+ * App
  */
 class App
 {
@@ -789,7 +791,7 @@ class App
 
 
 /**
- * HttpStatus 
+ * HttpStatus
  *
  * HTTP status code and message translator
  */
@@ -910,7 +912,7 @@ class HttpStatus
     /**
      * Set the HTTP status code
      *
-     * @param int $code 
+     * @param int $code
      * @return HttpStatus
      */
     public function setCode($code)
@@ -922,7 +924,7 @@ class HttpStatus
     /**
      * Set the HTTP status message
      *
-     * @param string $message 
+     * @param string $message
      * @return HttpStatus
      */
     public function setMessage($message)
@@ -933,7 +935,7 @@ class HttpStatus
 
     /**
      * Get a string representation of our HTTP status
-     * 
+     *
      * @return string
      */
     public function getFormattedString()
@@ -967,7 +969,7 @@ class HttpStatus
      * Returns null if no corresponding message was
      * found for the passed in code
      *
-     * @param int $int 
+     * @param int $int
      * @return string|null
      */
     public static function getMessageFromCode($int)
@@ -996,6 +998,8 @@ class HttpStatus
  * @link        https://github.com/chriso/klein.php
  * @license     MIT
  */
+
+
 
 
 
@@ -1123,26 +1127,26 @@ class Klein
     protected $route_factory;
 
     /**
-     * An array of error callback callables
+     * A stack of error callback callables
      *
-     * @type array[callable]
+     * @type SplStack
      */
-    protected $errorCallbacks = array();
+    protected $error_callbacks;
 
     /**
-     * An array of HTTP error callback callables
+     * A stack of HTTP error callback callables
      *
-     * @type array[callable]
+     * @type SplStack
      */
-    protected $httpErrorCallbacks = array();
+    protected $http_error_callbacks;
 
     /**
-     * An array of callbacks to call after processing the dispatch loop
+     * A queue of callbacks to call after processing the dispatch loop
      * and before the response is sent
      *
-     * @type array[callable]
+     * @type SplQueue
      */
-    protected $afterFilterCallbacks = array();
+    protected $after_filter_callbacks;
 
 
     /**
@@ -1204,6 +1208,10 @@ class Klein
         $this->app           = $app           ?: new App();
         $this->routes        = $routes        ?: new RouteCollection();
         $this->route_factory = $route_factory ?: new RouteFactory();
+
+        $this->error_callbacks = new SplStack();
+        $this->http_error_callbacks = new SplStack();
+        $this->after_filter_callbacks = new SplQueue();
     }
 
     /**
@@ -1870,11 +1878,11 @@ class Klein
      * Adds an error callback to the stack of error handlers
      *
      * @param callable $callback            The callable function to execute in the error handling chain
-     * @return boolean|void
+     * @return void
      */
     public function onError($callback)
     {
-        $this->errorCallbacks[] = $callback;
+        $this->error_callbacks->push($callback);
     }
 
     /**
@@ -1889,8 +1897,8 @@ class Klein
         $type = get_class($err);
         $msg = $err->getMessage();
 
-        if (count($this->errorCallbacks) > 0) {
-            foreach (array_reverse($this->errorCallbacks) as $callback) {
+        if (!$this->error_callbacks->isEmpty()) {
+            foreach ($this->error_callbacks as $callback) {
                 if (is_callable($callback)) {
                     if (is_string($callback)) {
                         $callback($this, $msg, $type, $err);
@@ -1926,7 +1934,7 @@ class Klein
      */
     public function onHttpError($callback)
     {
-        $this->httpErrorCallbacks[] = $callback;
+        $this->http_error_callbacks->push($callback);
     }
 
     /**
@@ -1943,8 +1951,8 @@ class Klein
             $this->response->code($http_exception->getCode());
         }
 
-        if (count($this->httpErrorCallbacks) > 0) {
-            foreach (array_reverse($this->httpErrorCallbacks) as $callback) {
+        if (!$this->http_error_callbacks->isEmpty()) {
+            foreach ($this->http_error_callbacks as $callback) {
                 if ($callback instanceof Route) {
                     $this->handleRouteCallback($callback, $matched, $methods_matched);
                 } elseif (is_callable($callback)) {
@@ -1985,7 +1993,7 @@ class Klein
      */
     public function afterDispatch($callback)
     {
-        $this->afterFilterCallbacks[] = $callback;
+        $this->after_filter_callbacks->enqueue($callback);
     }
 
     /**
@@ -1996,7 +2004,7 @@ class Klein
     protected function callAfterDispatchCallbacks()
     {
         try {
-            foreach ($this->afterFilterCallbacks as $callback) {
+            foreach ($this->after_filter_callbacks as $callback) {
                 if (is_callable($callback)) {
                     if (is_string($callback)) {
                         $callback($this);
@@ -2642,7 +2650,7 @@ class Request
      * $request->method('post') // returns true
      * $request->method('get') // returns false
      * </code>
-     * 
+     *
      * @param string $is				The method to check the current request method against
      * @param boolean $allow_override	Whether or not to allow HTTP method overriding via header or params
      * @return string|boolean
@@ -2723,7 +2731,7 @@ class Request
 
 
 /**
- * Response 
+ * Response
  */
 class Response extends AbstractResponse
 {
@@ -2977,7 +2985,7 @@ class ResponseCookie
     {
         return $this->name;
     }
-    
+
     /**
      * Sets the cookie's name
      *
@@ -3000,7 +3008,7 @@ class ResponseCookie
     {
         return $this->value;
     }
-    
+
     /**
      * Sets the cookie's value
      *
@@ -3027,7 +3035,7 @@ class ResponseCookie
     {
         return $this->expire;
     }
-    
+
     /**
      * Sets the cookie's expire time
      *
@@ -3057,7 +3065,7 @@ class ResponseCookie
     {
         return $this->path;
     }
-    
+
     /**
      * Sets the cookie's path
      *
@@ -3084,7 +3092,7 @@ class ResponseCookie
     {
         return $this->domain;
     }
-    
+
     /**
      * Sets the cookie's domain
      *
@@ -3111,7 +3119,7 @@ class ResponseCookie
     {
         return $this->secure;
     }
-    
+
     /**
      * Sets the cookie's secure only flag
      *
@@ -3134,7 +3142,7 @@ class ResponseCookie
     {
         return $this->http_only;
     }
-    
+
     /**
      * Sets the cookie's HTTP only flag
      *
@@ -3267,7 +3275,7 @@ class Route
     {
         return $this->callback;
     }
-    
+
     /**
      * Set the callback
      *
@@ -3295,7 +3303,7 @@ class Route
     {
         return $this->path;
     }
-    
+
     /**
      * Set the path
      *
@@ -3318,7 +3326,7 @@ class Route
     {
         return $this->method;
     }
-    
+
     /**
      * Set the method
      *
@@ -3347,7 +3355,7 @@ class Route
     {
         return $this->count_match;
     }
-    
+
     /**
      * Set the count_match
      *
@@ -3370,7 +3378,7 @@ class Route
     {
         return $this->name;
     }
-    
+
     /**
      * Set the name
      *
@@ -3571,7 +3579,7 @@ class RouteFactory extends AbstractRouteFactory
 
 
 /**
- * ServiceProvider 
+ * ServiceProvider
  *
  * Service provider class for handling logic extending between
  * a request's data and a response's behavior
@@ -4024,7 +4032,7 @@ class ServiceProvider
 
 
 /**
- * Validator 
+ * Validator
  */
 class Validator
 {
@@ -4059,7 +4067,7 @@ class Validator
      *
      * @type boolean
      */
-    protected static $defaultAdded = false;
+    protected static $default_added = false;
 
 
     /**
@@ -4077,7 +4085,7 @@ class Validator
         $this->str = $str;
         $this->err = $err;
 
-        if (!static::$defaultAdded) {
+        if (!static::$default_added) {
             static::addDefault();
         }
     }
@@ -4130,7 +4138,7 @@ class Validator
             return preg_match("/^[$chars]++$/i", $str);
         };
 
-        static::$defaultAdded = true;
+        static::$default_added = true;
     }
 
     /**
@@ -4689,6 +4697,78 @@ class HeaderDataCollection extends DataCollection
 {
 
     /**
+     * Constants
+     */
+
+    /**
+     * Normalization option
+     *
+     * Don't normalize
+     *
+     * @type int
+     */
+    const NORMALIZE_NONE = 0;
+
+    /**
+     * Normalization option
+     *
+     * Normalize the outer whitespace of the header
+     *
+     * @type int
+     */
+    const NORMALIZE_TRIM = 1;
+
+    /**
+     * Normalization option
+     *
+     * Normalize the delimiters of the header
+     *
+     * @type int
+     */
+    const NORMALIZE_DELIMITERS = 2;
+
+    /**
+     * Normalization option
+     *
+     * Normalize the case of the header
+     *
+     * @type int
+     */
+    const NORMALIZE_CASE = 4;
+
+    /**
+     * Normalization option
+     *
+     * Normalize the header into canonical format
+     *
+     * @type int
+     */
+    const NORMALIZE_CANONICAL = 8;
+
+    /**
+     * Normalization option
+     *
+     * Normalize using all normalization techniques
+     *
+     * @type int
+     */
+    const NORMALIZE_ALL = -1;
+
+
+    /**
+     * Properties
+     */
+
+    /**
+     * The header key normalization technique/style to
+     * use when accessing headers in the collection
+     *
+     * @type int
+     */
+    protected $normalization = self::NORMALIZE_ALL;
+
+
+    /**
      * Methods
      */
 
@@ -4696,13 +4776,39 @@ class HeaderDataCollection extends DataCollection
      * Constructor
      *
      * @override (doesn't call our parent)
-     * @param array $headers The headers of this collection
+     * @param array $headers        The headers of this collection
+     * @param int $normalization    The header key normalization technique/style to use
      */
-    public function __construct(array $headers = array())
+    public function __construct(array $headers = array(), $normalization = self::NORMALIZE_ALL)
     {
+        $this->normalization = (int) $normalization;
+
         foreach ($headers as $key => $value) {
             $this->set($key, $value);
         }
+    }
+
+    /**
+     * Get the header key normalization technique/style to use
+     *
+     * @return int
+     */
+    public function getNormalization()
+    {
+        return $this->normalization;
+    }
+
+    /**
+     * Set the header key normalization technique/style to use
+     *
+     * @param int $normalization
+     * @return HeaderDataCollection
+     */
+    public function setNormalization($normalization)
+    {
+        $this->normalization = (int) $normalization;
+
+        return $this;
     }
 
     /**
@@ -4711,13 +4817,13 @@ class HeaderDataCollection extends DataCollection
      * {@inheritdoc}
      *
      * @see DataCollection::get()
-     * @param string $key           The name of the header to return
+     * @param string $key           The key of the header to return
      * @param mixed  $default_val   The default value of the header if it contains no value
      * @return mixed
      */
     public function get($key, $default_val = null)
     {
-        $key = static::normalizeName($key);
+        $key = $this->normalizeKey($key);
 
         return parent::get($key, $default_val);
     }
@@ -4728,13 +4834,13 @@ class HeaderDataCollection extends DataCollection
      * {@inheritdoc}
      *
      * @see DataCollection::set()
-     * @param string $key   The name of the header to set
+     * @param string $key   The key of the header to set
      * @param mixed  $value The value of the header to set
      * @return HeaderDataCollection
      */
     public function set($key, $value)
     {
-        $key = static::normalizeName($key);
+        $key = $this->normalizeKey($key);
 
         return parent::set($key, $value);
     }
@@ -4745,12 +4851,12 @@ class HeaderDataCollection extends DataCollection
      * {@inheritdoc}
      *
      * @see DataCollection::exists()
-     * @param string $key   The name of the header
+     * @param string $key   The key of the header
      * @return boolean
      */
     public function exists($key)
     {
-        $key = static::normalizeName($key);
+        $key = $this->normalizeKey($key);
 
         return parent::exists($key);
     }
@@ -4761,14 +4867,76 @@ class HeaderDataCollection extends DataCollection
      * {@inheritdoc}
      *
      * @see DataCollection::remove()
-     * @param string $key   The name of the header
+     * @param string $key   The key of the header
      * @return void
      */
     public function remove($key)
     {
-        $key = static::normalizeName($key);
+        $key = $this->normalizeKey($key);
 
         parent::remove($key);
+    }
+
+    /**
+     * Normalize a header key based on our set normalization style
+     *
+     * @param string $key The ("field") key of the header
+     * @return string
+     */
+    protected function normalizeKey($key)
+    {
+        if ($this->normalization & static::NORMALIZE_TRIM) {
+            $key = trim($key);
+        }
+
+        if ($this->normalization & static::NORMALIZE_DELIMITERS) {
+            $key = static::normalizeKeyDelimiters($key);
+        }
+
+        if ($this->normalization & static::NORMALIZE_CASE) {
+            $key = strtolower($key);
+        }
+
+        if ($this->normalization & static::NORMALIZE_CANONICAL) {
+            $key = static::canonicalizeKey($key);
+        }
+
+        return $key;
+    }
+
+    /**
+     * Normalize a header key's delimiters
+     *
+     * This will convert any space or underscore characters
+     * to a more standard hyphen (-) character
+     *
+     * @param string $key The ("field") key of the header
+     * @return string
+     */
+    public static function normalizeKeyDelimiters($key)
+    {
+        return str_replace(array(' ', '_'), '-', $key);
+    }
+
+    /**
+     * Canonicalize a header key
+     *
+     * The canonical format is all lower case except for
+     * the first letter of "words" separated by a hyphen
+     *
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+     * @param string $key The ("field") key of the header
+     * @return string
+     */
+    public static function canonicalizeKey($key)
+    {
+        $words = explode('-', strtolower($key));
+
+        foreach ($words as &$word) {
+            $word = ucfirst($word);
+        }
+
+        return implode('-', $words);
     }
 
     /**
@@ -4777,13 +4945,21 @@ class HeaderDataCollection extends DataCollection
      * This is useful since PHP automatically capitalizes and underscore
      * separates the words of headers
      *
+     * @todo Possibly remove in future, here for backwards compatibility
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
      * @param string $name              The name ("field") of the header
      * @param boolean $make_lowercase   Whether or not to lowercase the name
+     * @deprecated Use the normalization options and the other normalization methods instead
      * @return string
      */
     public static function normalizeName($name, $make_lowercase = true)
     {
+        // Warn user of deprecation
+        trigger_error(
+            'Use the normalization options and the other normalization methods instead.',
+            E_USER_DEPRECATED
+        );
+
         /**
          * Lowercasing header names allows for a more uniform appearance,
          * however header names are case-insensitive by specification
@@ -5282,7 +5458,7 @@ class DispatchHaltedException extends RuntimeException implements KleinException
     {
         return $this->number_of_skips;
     }
-    
+
     /**
      * Sets the number of matches to skip on a "next" skip
      *
@@ -5658,7 +5834,7 @@ class UnknownServiceException extends OutOfBoundsException implements KleinExcep
 
 
 /**
- * ValidationException 
+ * ValidationException
  *
  * Exception used for Validation errors
  */
