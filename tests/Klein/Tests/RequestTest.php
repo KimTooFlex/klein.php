@@ -1,6 +1,6 @@
 <?php
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -11,14 +11,11 @@
 
 namespace Klein\Tests;
 
-use \Klein\Request;
-use \Klein\Tests\Mocks\MockRequestFactory;
+use Klein\Request;
+use Klein\Tests\Mocks\MockRequestFactory;
 
 /**
  * RequestTest
- * 
- * @uses AbstractKleinTest
- * @package Klein\Tests
  */
 class RequestTest extends AbstractKleinTest
 {

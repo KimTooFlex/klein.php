@@ -1,6 +1,6 @@
 <?php
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -10,7 +10,6 @@
  */
 
 namespace Klein\Tests;
-
 
 use Klein\App;
 use Klein\DataCollection\RouteCollection;
@@ -28,9 +27,6 @@ use Klein\Tests\Mocks\MockRequestFactory;
 
 /**
  * RoutingTest
- * 
- * @uses AbstractKleinTest
- * @package Klein\Tests
  */
 class RoutingTest extends AbstractKleinTest
 {
@@ -1238,7 +1234,7 @@ class RoutingTest extends AbstractKleinTest
     {
         $this->klein_app->respond(
             array('GET', 'POST'),
-            null,
+            '/',
             function () {
                 echo 'fail';
             }
@@ -1250,6 +1246,23 @@ class RoutingTest extends AbstractKleinTest
 
         $this->assertEquals('405 Method Not Allowed', $this->klein_app->response()->status()->getFormattedString());
         $this->assertEquals('GET, POST', $this->klein_app->response()->headers()->get('Allow'));
+    }
+
+    public function testNo405OnNonMatchRoutes()
+    {
+        $this->klein_app->respond(
+            array('GET', 'POST'),
+            null,
+            function () {
+                echo 'this shouldn\'t cause a 405 since this route doesn\'t count as a match anyway';
+            }
+        );
+
+        $this->klein_app->dispatch(
+            MockRequestFactory::create('/', 'DELETE')
+        );
+
+        $this->assertEquals(404, $this->klein_app->response()->code());
     }
 
     public function test405Routes()
@@ -1265,14 +1278,14 @@ class RoutingTest extends AbstractKleinTest
         );
         $this->klein_app->respond(
             'GET',
-            null,
+            '/sure',
             function () {
                 echo 'fail';
             }
         );
         $this->klein_app->respond(
             array('GET', 'POST'),
-            null,
+            '/sure',
             function () {
                 echo 'fail';
             }
@@ -1313,14 +1326,14 @@ class RoutingTest extends AbstractKleinTest
         );
         $this->klein_app->respond(
             'GET',
-            null,
+            '/sure',
             function () {
                 echo 'fail';
             }
         );
         $this->klein_app->respond(
             array('GET', 'POST'),
-            null,
+            '/sure',
             function () {
                 echo 'fail';
             }
@@ -1350,7 +1363,7 @@ class RoutingTest extends AbstractKleinTest
         );
         $this->klein_app->respond(
             array('GET', 'POST'),
-            null,
+            '/',
             function () {
                 echo 'fail';
             }
@@ -1379,14 +1392,14 @@ class RoutingTest extends AbstractKleinTest
 
         $this->klein_app->respond(
             'GET',
-            null,
+            '/',
             function () {
                 echo 'fail';
             }
         );
         $this->klein_app->respond(
             array('GET', 'POST'),
-            null,
+            '/',
             function () {
                 echo 'fail';
             }
@@ -1397,7 +1410,7 @@ class RoutingTest extends AbstractKleinTest
             function ($request, $response) use ($access_control_headers) {
                 // Add access control headers
                 foreach ($access_control_headers as $header) {
-                    $response->header($header[ 'key' ], $header[ 'val' ]);
+                    $response->header($header['key'], $header['val']);
                 }
             }
         );
@@ -1408,7 +1421,7 @@ class RoutingTest extends AbstractKleinTest
 
 
         // Assert headers were passed
-        $this->assertEquals('GET, POST, OPTIONS', $this->klein_app->response()->headers()->get('Allow'));
+        $this->assertEquals('GET, POST', $this->klein_app->response()->headers()->get('Allow'));
 
         foreach ($access_control_headers as $header) {
             $this->assertEquals($header['val'], $this->klein_app->response()->headers()->get($header['key']));
@@ -2149,6 +2162,20 @@ class RoutingTest extends AbstractKleinTest
             MockRequestFactory::create('/file0ext')
         );
         $this->assertSame(404, $this->klein_app->response()->code());
+    }
+
+    public function testMultipleUnsafeCharactersArentOverQuoted()
+    {
+        $this->klein_app->respond(
+            '/[a:site].[:format]?/[:id].[:format2]?',
+            function () {
+            }
+        );
+
+        $this->klein_app->dispatch(
+            MockRequestFactory::create('/site.main/id.json')
+        );
+        $this->assertSame(200, $this->klein_app->response()->code());
     }
 
     public function testMatchesLiteralPlusSignsInPaths()

@@ -1,6 +1,6 @@
 <?php
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -11,15 +11,12 @@
 
 namespace Klein\Exceptions;
 
-use \OverflowException;
+use OverflowException;
 
 /**
  * DuplicateServiceException
  *
  * Exception used for when a service is attempted to be registered that already exists
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
  */
 class DuplicateServiceException extends OverflowException implements KleinExceptionInterface
 {

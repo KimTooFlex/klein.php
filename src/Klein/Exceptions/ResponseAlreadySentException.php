@@ -1,6 +1,6 @@
 <?php
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -11,15 +11,12 @@
 
 namespace Klein\Exceptions;
 
-use \RuntimeException;
+use RuntimeException;
 
 /**
  * ResponseAlreadySentException
  *
  * Exception used for when a response is attempted to be sent after its already been sent
- * 
- * @uses       RuntimeException
- * @package    Klein\Exceptions
  */
 class ResponseAlreadySentException extends RuntimeException implements KleinExceptionInterface
 {

@@ -1,6 +1,6 @@
 <?php
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -11,19 +11,15 @@
 
 namespace Klein\Tests;
 
-
-use \Klein\Klein;
-use \Klein\Request;
-use \Klein\Response;
-use \Klein\Validator;
-use \Klein\ServiceProvider;
-use \Klein\DataCollection\DataCollection;
+use Klein\DataCollection\DataCollection;
+use Klein\Klein;
+use Klein\Request;
+use Klein\Response;
+use Klein\ServiceProvider;
+use Klein\Validator;
 
 /**
  * ServiceProviderTest
- *
- * @uses AbstractKleinTest
- * @package Klein\Tests
  */
 class ServiceProviderTest extends AbstractKleinTest
 {

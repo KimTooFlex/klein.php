@@ -1,6 +1,6 @@
 <?php
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -11,22 +11,17 @@
 
 namespace Klein\Tests;
 
-
-use \Klein\Klein;
-use \Klein\Response;
-use \Klein\HttpStatus;
-use \Klein\DataCollection\HeaderDataCollection;
-use \Klein\DataCollection\ResponseCookieDataCollection;
-use \Klein\Exceptions\LockedResponseException;
-use \Klein\ResponseCookie;
-
-use \Klein\Tests\Mocks\MockRequestFactory;
+use Klein\DataCollection\HeaderDataCollection;
+use Klein\DataCollection\ResponseCookieDataCollection;
+use Klein\Exceptions\LockedResponseException;
+use Klein\HttpStatus;
+use Klein\Klein;
+use Klein\Response;
+use Klein\ResponseCookie;
+use Klein\Tests\Mocks\MockRequestFactory;
 
 /**
  * ResponsesTest 
- * 
- * @uses AbstractKleinTest
- * @package Klein\Tests
  */
 class ResponsesTest extends AbstractKleinTest
 {
@@ -254,7 +249,7 @@ class ResponsesTest extends AbstractKleinTest
     }
 
     /**
-     * @expectedException Klein\Exceptions\ResponseAlreadySentException
+     * @expectedException \Klein\Exceptions\ResponseAlreadySentException
      */
     public function testSendWhenAlreadySent()
     {

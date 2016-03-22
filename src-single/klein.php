@@ -27,7 +27,7 @@ use OutOfBoundsException;
 /* Start of src/Klein/AbstractResponse.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -46,9 +46,6 @@ use OutOfBoundsException;
 
 /**
  * AbstractResponse
- * 
- * @abstract
- * @package     Klein
  */
 abstract class AbstractResponse
 {
@@ -60,49 +57,42 @@ abstract class AbstractResponse
     /**
      * The default response HTTP status code
      *
-     * @static
-     * @var int
-     * @access protected
+     * @type int
      */
     protected static $default_status_code = 200;
 
     /**
      * The HTTP version of the response
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $protocol_version = '1.1';
 
     /**
      * The response body
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $body;
 
     /**
      * HTTP response status
      *
-     * @var \Klein\HttpStatus
-     * @access protected
+     * @type HttpStatus
      */
     protected $status;
 
     /**
      * HTTP response headers
      *
-     * @var \Klein\DataCollection\HeaderDataCollection
-     * @access protected
+     * @type HeaderDataCollection
      */
     protected $headers;
 
     /**
      * HTTP response cookies
      *
-     * @var \Klein\DataCollection\ResponseCookieDataCollection
-     * @access protected
+     * @type ResponseCookieDataCollection
      */
     protected $cookies;
 
@@ -110,24 +100,21 @@ abstract class AbstractResponse
      * Whether or not the response is "locked" from
      * any further modification
      *
-     * @var boolean
-     * @access protected
+     * @type boolean
      */
     protected $locked = false;
 
     /**
      * Whether or not the response has been sent
      *
-     * @var boolean
-     * @access protected
+     * @type boolean
      */
     protected $sent = false;
 
     /**
      * Whether the response has been chunked or not
      *
-     * @var boolean
-     * @access public
+     * @type boolean
      */
     public $chunked = false;
 
@@ -144,7 +131,6 @@ abstract class AbstractResponse
      * @param string $body          The response body's content
      * @param int $status_code      The status code
      * @param array $headers        The response header "hash"
-     * @access public
      */
     public function __construct($body = '', $status_code = null, array $headers = array())
     {
@@ -166,7 +152,6 @@ abstract class AbstractResponse
      * was provided by the argument.
      *
      * @param string $protocol_version
-     * @access public
      * @return string|AbstractResponse
      */
     public function protocolVersion($protocol_version = null)
@@ -190,7 +175,6 @@ abstract class AbstractResponse
      * Calling with an argument, however, sets the response body to what was provided by the argument.
      *
      * @param string $body  The body content string
-     * @access public
      * @return string|AbstractResponse
      */
     public function body($body = null)
@@ -210,7 +194,6 @@ abstract class AbstractResponse
     /**
      * Returns the status object
      *
-     * @access public
      * @return \Klein\HttpStatus
      */
     public function status()
@@ -221,8 +204,7 @@ abstract class AbstractResponse
     /**
      * Returns the headers collection
      *
-     * @access public
-     * @return \Klein\DataCollection\HeaderDataCollection
+     * @return HeaderDataCollection
      */
     public function headers()
     {
@@ -232,8 +214,7 @@ abstract class AbstractResponse
     /**
      * Returns the cookies collection
      *
-     * @access public
-     * @return \Klein\DataCollection\ResponseCookieDataCollection
+     * @return ResponseCookieDataCollection
      */
     public function cookies()
     {
@@ -248,7 +229,6 @@ abstract class AbstractResponse
      * was provided by the argument.
      *
      * @param int $code     The HTTP status code to send
-     * @access public
      * @return int|AbstractResponse
      */
     public function code($code = null)
@@ -269,7 +249,6 @@ abstract class AbstractResponse
      * Prepend a string to the response's content body
      *
      * @param string $content   The string to prepend
-     * @access public
      * @return AbstractResponse
      */
     public function prepend($content)
@@ -286,7 +265,6 @@ abstract class AbstractResponse
      * Append a string to the response's content body
      *
      * @param string $content   The string to append
-     * @access public
      * @return AbstractResponse
      */
     public function append($content)
@@ -302,7 +280,6 @@ abstract class AbstractResponse
     /**
      * Check if the response is locked
      *
-     * @access public
      * @return boolean
      */
     public function isLocked()
@@ -318,7 +295,6 @@ abstract class AbstractResponse
      * when its locked
      *
      * @throws LockedResponseException  If the response is locked
-     * @access public
      * @return AbstractResponse
      */
     public function requireUnlocked()
@@ -333,7 +309,6 @@ abstract class AbstractResponse
     /**
      * Lock the response from further modification
      *
-     * @access public
      * @return AbstractResponse
      */
     public function lock()
@@ -346,7 +321,6 @@ abstract class AbstractResponse
     /**
      * Unlock the response from further modification
      *
-     * @access public
      * @return AbstractResponse
      */
     public function unlock()
@@ -361,7 +335,6 @@ abstract class AbstractResponse
      *
      * Creates the string based off of the response's properties
      *
-     * @access protected
      * @return string
      */
     protected function httpStatusLine()
@@ -374,7 +347,6 @@ abstract class AbstractResponse
      *
      * @param boolean $cookies_also Whether or not to also send the cookies after sending the normal headers
      * @param boolean $override     Whether or not to override the check if headers have already been sent
-     * @access public
      * @return AbstractResponse
      */
     public function sendHeaders($cookies_also = true, $override = false)
@@ -402,7 +374,6 @@ abstract class AbstractResponse
      * Send our HTTP response cookies
      *
      * @param boolean $override     Whether or not to override the check if headers have already been sent
-     * @access public
      * @return AbstractResponse
      */
     public function sendCookies($override = false)
@@ -431,7 +402,6 @@ abstract class AbstractResponse
     /**
      * Send our body's contents
      *
-     * @access public
      * @return AbstractResponse
      */
     public function sendBody()
@@ -446,7 +416,6 @@ abstract class AbstractResponse
      *
      * @param boolean $override             Whether or not to override the check if the response has already been sent
      * @throws ResponseAlreadySentException If the response has already been sent
-     * @access public
      * @return AbstractResponse
      */
     public function send($override = false)
@@ -476,7 +445,6 @@ abstract class AbstractResponse
     /**
      * Check if the response has been sent
      *
-     * @access public
      * @return boolean
      */
     public function isSent()
@@ -489,7 +457,6 @@ abstract class AbstractResponse
      *
      * @link https://github.com/chriso/klein.php/wiki/Response-Chunking
      * @link http://bit.ly/hg3gHb
-     * @access public
      * @return AbstractResponse
      */
     public function chunk()
@@ -516,7 +483,6 @@ abstract class AbstractResponse
      *
      * @param string $key       The name of the HTTP response header
      * @param mixed $value      The value to set the header with
-     * @access public
      * @return AbstractResponse
      */
     public function header($key, $value)
@@ -536,7 +502,6 @@ abstract class AbstractResponse
      * @param string $domain        The domain of which to restrict the cookie
      * @param boolean $secure       Flag of whether the cookie should only be sent over a HTTPS connection
      * @param boolean $httponly     Flag of whether the cookie should only be accessible over the HTTP protocol
-     * @access public
      * @return AbstractResponse
      */
     public function cookie(
@@ -563,7 +528,6 @@ abstract class AbstractResponse
     /**
      * Tell the browser not to cache the response
      *
-     * @access public
      * @return AbstractResponse
      */
     public function noCache()
@@ -579,7 +543,6 @@ abstract class AbstractResponse
      *
      * @param string $url   The URL to redirect to
      * @param int $code     The HTTP status code to use for redirection
-     * @access public
      * @return AbstractResponse
      */
     public function redirect($url, $code = 302)
@@ -600,7 +563,7 @@ abstract class AbstractResponse
 /* Start of src/Klein/AbstractRouteFactory.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -615,9 +578,6 @@ abstract class AbstractResponse
  * AbstractRouteFactory
  *
  * Abstract class for a factory for building new Route instances
- *
- * @abstract
- * @package     Klein
  */
 abstract class AbstractRouteFactory
 {
@@ -631,8 +591,7 @@ abstract class AbstractRouteFactory
      * when matching, so you can define routes under a
      * common endpoint
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $namespace;
 
@@ -645,7 +604,6 @@ abstract class AbstractRouteFactory
      * Constructor
      *
      * @param string $namespace The initial namespace to set
-     * @access public
      */
     public function __construct($namespace = null)
     {
@@ -655,7 +613,6 @@ abstract class AbstractRouteFactory
     /**
      * Gets the value of namespace
      *
-     * @access public
      * @return string
      */
     public function getNamespace()
@@ -667,7 +624,6 @@ abstract class AbstractRouteFactory
      * Sets the value of namespace
      *
      * @param string $namespace The namespace from which to collect the Routes under
-     * @access public
      * @return AbstractRouteFactory
      */
     public function setNamespace($namespace)
@@ -681,7 +637,6 @@ abstract class AbstractRouteFactory
      * Append a namespace to the current namespace
      *
      * @param string $namespace The namespace from which to collect the Routes under
-     * @access public
      * @return AbstractRouteFactory
      */
     public function appendNamespace($namespace)
@@ -701,9 +656,7 @@ abstract class AbstractRouteFactory
      * @param string|array $method  HTTP Method to match
      * @param boolean $count_match  Whether or not to count the route as a match when counting total matches
      * @param string $name          The name of the route
-     * @abstract
-     * @access public
-     * @return Klein\Route
+     * @return Route
      */
     abstract public function build($callback, $path = null, $method = null, $count_match = true, $name = null);
 }
@@ -716,7 +669,7 @@ abstract class AbstractRouteFactory
 /* Start of src/Klein/App.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -731,11 +684,8 @@ abstract class AbstractRouteFactory
 
 
 
-
 /**
  * App 
- * 
- * @package    Klein
  */
 class App
 {
@@ -747,8 +697,7 @@ class App
     /**
      * The array of app services
      *
-     * @var array
-     * @access protected
+     * @type array
      */
     protected $services = array();
 
@@ -763,7 +712,6 @@ class App
      *
      * @param string $name              The name of the service
      * @throws UnknownServiceException  If a non-registered service is attempted to fetched
-     * @access public
      * @return mixed
      */
     public function __get($name)
@@ -785,7 +733,6 @@ class App
      * @param callable $method          The callable method to execute
      * @param array $args               The argument array to pass to our callback
      * @throws BadMethodCallException   If a non-registered method is attempted to be called
-     * @access public
      * @return void
      */
     public function __call($method, $args)
@@ -803,7 +750,6 @@ class App
      * @param string $name                  The name of the service
      * @param callable $closure             The callable function to execute when requesting our service
      * @throws DuplicateServiceException    If an attempt is made to register two services with the same name
-     * @access public
      * @return mixed
      */
     public function register($name, $closure)
@@ -831,7 +777,7 @@ class App
 /* Start of src/Klein/HttpStatus.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -846,8 +792,6 @@ class App
  * HttpStatus 
  *
  * HTTP status code and message translator
- * 
- * @package     Klein
  */
 class HttpStatus
 {
@@ -855,16 +799,14 @@ class HttpStatus
     /**
      * The HTTP status code
      *
-     * @var int
-     * @access protected
+     * @type int
      */
     protected $code;
 
     /**
      * The HTTP status message
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $message;
 
@@ -872,9 +814,7 @@ class HttpStatus
      * HTTP 1.1 status messages based on code
      *
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-     * @static
-     * @var array
-     * @access protected
+     * @type array
      */
     protected static $http_messages = array(
         // Informational 1xx
@@ -935,8 +875,6 @@ class HttpStatus
      *
      * @param int $code The HTTP code
      * @param string $message (optional) HTTP message for the corresponding code
-     * @access public
-     * @return void
      */
     public function __construct($code, $message = null)
     {
@@ -952,7 +890,6 @@ class HttpStatus
     /**
      * Get the HTTP status code
      *
-     * @access public
      * @return int
      */
     public function getCode()
@@ -963,7 +900,6 @@ class HttpStatus
     /**
      * Get the HTTP status message
      *
-     * @access public
      * @return string
      */
     public function getMessage()
@@ -975,7 +911,6 @@ class HttpStatus
      * Set the HTTP status code
      *
      * @param int $code 
-     * @access public
      * @return HttpStatus
      */
     public function setCode($code)
@@ -988,7 +923,6 @@ class HttpStatus
      * Set the HTTP status message
      *
      * @param string $message 
-     * @access public
      * @return HttpStatus
      */
     public function setMessage($message)
@@ -1000,7 +934,6 @@ class HttpStatus
     /**
      * Get a string representation of our HTTP status
      * 
-     * @access public
      * @return string
      */
     public function getFormattedString()
@@ -1021,7 +954,6 @@ class HttpStatus
      * This method will be automatically called, returning a string representation
      * of this instance
      *
-     * @access public
      * @return string
      */
     public function __toString()
@@ -1036,9 +968,7 @@ class HttpStatus
      * found for the passed in code
      *
      * @param int $int 
-     * @static
-     * @access public
-     * @return string | null
+     * @return string|null
      */
     public static function getMessageFromCode($int)
     {
@@ -1058,7 +988,7 @@ class HttpStatus
 /* Start of src/Klein/Klein.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -1080,13 +1010,10 @@ class HttpStatus
 
 
 
-
 /**
  * Klein
  *
  * Main Klein router class
- * 
- * @package     Klein
  */
 class Klein
 {
@@ -1098,14 +1025,14 @@ class Klein
     /**
      * The regular expression used to compile and match URL's
      *
-     * @const string
+     * @type string
      */
-    const ROUTE_COMPILE_REGEX = '`(\\\?(?:/|\.|))(\[([^:\]]*+)(?::([^:\]]*+))?\])(\?|)`';
+    const ROUTE_COMPILE_REGEX = '`(\\\?(?:/|\.|))(?:\[([^:\]]*)(?::([^:\]]*))?\])(\?|)`';
 
     /**
      * The regular expression used to escape the non-named param section of a route URL
      *
-     * @const string
+     * @type string
      */
     const ROUTE_ESCAPE_REGEX = '`(?<=^|\])[^\]\[\?]+?(?=\[|$)`';
 
@@ -1114,7 +1041,7 @@ class Klein
      *
      * Don't capture anything. Behave as normal.
      *
-     * @const int
+     * @type int
      */
     const DISPATCH_NO_CAPTURE = 0;
 
@@ -1123,7 +1050,7 @@ class Klein
      *
      * Capture all output and return it from dispatch
      *
-     * @const int
+     * @type int
      */
     const DISPATCH_CAPTURE_AND_RETURN = 1;
 
@@ -1132,7 +1059,7 @@ class Klein
      *
      * Capture all output and replace the response body with it
      *
-     * @const int
+     * @type int
      */
     const DISPATCH_CAPTURE_AND_REPLACE = 2;
 
@@ -1141,7 +1068,7 @@ class Klein
      *
      * Capture all output and prepend it to the response body
      *
-     * @const int
+     * @type int
      */
     const DISPATCH_CAPTURE_AND_PREPEND = 3;
 
@@ -1150,7 +1077,7 @@ class Klein
      *
      * Capture all output and append it to the response body
      *
-     * @const int
+     * @type int
      */
     const DISPATCH_CAPTURE_AND_APPEND = 4;
 
@@ -1160,34 +1087,52 @@ class Klein
      */
 
     /**
+     * The types to detect in a defined match "block"
+     *
+     * Examples of these blocks are as follows:
+     *
+     * - integer:       '[i:id]'
+     * - alphanumeric:  '[a:username]'
+     * - hexadecimal:   '[h:color]'
+     * - slug:          '[s:article]'
+     *
+     * @type array
+     */
+    protected $match_types = array(
+        'i'  => '[0-9]++',
+        'a'  => '[0-9A-Za-z]++',
+        'h'  => '[0-9A-Fa-f]++',
+        's'  => '[0-9A-Za-z-_]++',
+        '*'  => '.+?',
+        '**' => '.++',
+        ''   => '[^/]+?'
+    );
+
+    /**
      * Collection of the routes to match on dispatch
      *
-     * @var RouteCollection
-     * @access protected
+     * @type RouteCollection
      */
     protected $routes;
 
     /**
      * The Route factory object responsible for creating Route instances
      *
-     * @var AbstractRouteFactory
-     * @access protected
+     * @type AbstractRouteFactory
      */
     protected $route_factory;
 
     /**
      * An array of error callback callables
      *
-     * @var array[callable]
-     * @access protected
+     * @type array[callable]
      */
     protected $errorCallbacks = array();
 
     /**
      * An array of HTTP error callback callables
      *
-     * @var array[callable]
-     * @access protected
+     * @type array[callable]
      */
     protected $httpErrorCallbacks = array();
 
@@ -1195,8 +1140,7 @@ class Klein
      * An array of callbacks to call after processing the dispatch loop
      * and before the response is sent
      *
-     * @var array[callable]
-     * @access protected
+     * @type array[callable]
      */
     protected $afterFilterCallbacks = array();
 
@@ -1208,32 +1152,28 @@ class Klein
     /**
      * The Request object passed to each matched route
      *
-     * @var Request
-     * @access protected
+     * @type Request
      */
     protected $request;
 
     /**
      * The Response object passed to each matched route
      *
-     * @var Response
-     * @access protected
+     * @type AbstractResponse
      */
     protected $response;
 
     /**
      * The service provider object passed to each matched route
      *
-     * @var ServiceProvider
-     * @access protected
+     * @type ServiceProvider
      */
     protected $service;
 
     /**
      * A generic variable passed to each matched route
      *
-     * @var mixed
-     * @access protected
+     * @type mixed
      */
     protected $app;
 
@@ -1252,7 +1192,6 @@ class Klein
      * @param mixed $app                            An object passed to each route callback, defaults to an App instance
      * @param RouteCollection $routes               Collection object responsible for containing all route instances
      * @param AbstractRouteFactory $route_factory   A factory class responsible for creating Route instances
-     * @access public
      */
     public function __construct(
         ServiceProvider $service = null,
@@ -1270,7 +1209,6 @@ class Klein
     /**
      * Returns the routes object
      *
-     * @access public
      * @return RouteCollection
      */
     public function routes()
@@ -1281,7 +1219,6 @@ class Klein
     /**
      * Returns the request object
      *
-     * @access public
      * @return Request
      */
     public function request()
@@ -1292,7 +1229,6 @@ class Klein
     /**
      * Returns the response object
      *
-     * @access public
      * @return Response
      */
     public function response()
@@ -1303,7 +1239,6 @@ class Klein
     /**
      * Returns the service object
      *
-     * @access public
      * @return ServiceProvider
      */
     public function service()
@@ -1314,7 +1249,6 @@ class Klein
     /**
      * Returns the app object
      *
-     * @access public
      * @return mixed
      */
     public function app()
@@ -1334,7 +1268,6 @@ class Klein
      *  @named string | array $method   HTTP Method to match
      *  @named string $path             Route URI path to match
      *  @named callable $callback       Callable callback method to execute on route match
-     * @access protected
      * @return array                    A named parameter array containing the keys: 'method', 'path', and 'callback'
      */
     protected function parseLooseArgumentOrder(array $args)
@@ -1376,10 +1309,9 @@ class Klein
      * });
      * </code>
      *
-     * @param string | array $method    HTTP Method to match
+     * @param string|array $method    HTTP Method to match
      * @param string $path              Route URI path to match
      * @param callable $callback        Callable callback method to execute on route match
-     * @access public
      * @return Route
      */
     public function respond($method, $path = '*', $callback = null)
@@ -1418,9 +1350,8 @@ class Klein
      * $router->with('/cars', __DIR__ . '/routes/cars.php');
      * </code>
      *
-     * @param string $namespace                     The namespace under which to collect the routes
-     * @param callable | string[filename] $routes   The defined routes to collect under the namespace
-     * @access public
+     * @param string $namespace         The namespace under which to collect the routes
+     * @param callable|string $routes   The defined routes callable or filename to collect under the namespace
      * @return void
      */
     public function with($namespace, $routes)
@@ -1443,7 +1374,7 @@ class Klein
     }
 
     /**
-     * Dispatch the request to the approriate route(s)
+     * Dispatch the request to the appropriate route(s)
      *
      * Dispatch with optionally injected dependencies
      * This DI allows for easy testing, object mocking, or class extension
@@ -1452,7 +1383,6 @@ class Klein
      * @param AbstractResponse $response    The response object to give to each callback
      * @param boolean $send_response        Whether or not to "send" the response after the last route has been matched
      * @param int $capture                  Specify a DISPATCH_* constant to change the output capturing behavior
-     * @access public
      * @return void|string
      */
     public function dispatch(
@@ -1649,10 +1579,13 @@ class Klein
                         }
                     }
 
-                    // Keep track of possibly matched methods
-                    $methods_matched = array_merge($methods_matched, (array) $method);
-                    $methods_matched = array_filter($methods_matched);
-                    $methods_matched = array_unique($methods_matched);
+                    // Don't bother counting this as a method match if the route isn't supposed to match anyway
+                    if ($count_match) {
+                        // Keep track of possibly matched methods
+                        $methods_matched = array_merge($methods_matched, (array) $method);
+                        $methods_matched = array_filter($methods_matched);
+                        $methods_matched = array_unique($methods_matched);
+                    }
                 }
             }
 
@@ -1746,36 +1679,32 @@ class Klein
      * Compiles a route string to a regular expression
      *
      * @param string $route     The route string to compile
-     * @access protected
-     * @return void
+     * @return string
      */
     protected function compileRoute($route)
     {
         // First escape all of the non-named param (non [block]s) for regex-chars
-        if (preg_match_all(static::ROUTE_ESCAPE_REGEX, $route, $escape_locations, PREG_SET_ORDER)) {
-            foreach ($escape_locations as $locations) {
-                $route = str_replace($locations[0], preg_quote($locations[0]), $route);
-            }
-        }
+        $route = preg_replace_callback(
+            static::ROUTE_ESCAPE_REGEX,
+            function ($match) {
+                return preg_quote($match[0]);
+            },
+            $route
+        );
+
+        // Get a local reference of the match types to pass into our closure
+        $match_types = $this->match_types;
 
         // Now let's actually compile the path
-        if (preg_match_all(static::ROUTE_COMPILE_REGEX, $route, $matches, PREG_SET_ORDER)) {
-            $match_types = array(
-                'i'  => '[0-9]++',
-                'a'  => '[0-9A-Za-z]++',
-                'h'  => '[0-9A-Fa-f]++',
-                's'  => '[0-9A-Za-z-_]++',
-                '*'  => '.+?',
-                '**' => '.++',
-                ''   => '[^/]+?'
-            );
-
-            foreach ($matches as $match) {
-                list($block, $pre, $inner_block, $type, $param, $optional) = $match;
+        $route = preg_replace_callback(
+            static::ROUTE_COMPILE_REGEX,
+            function ($match) use ($match_types) {
+                list(, $pre, $type, $param, $optional) = $match;
 
                 if (isset($match_types[$type])) {
                     $type = $match_types[$type];
                 }
+
                 // Older versions of PCRE require the 'P' in (?P<named>)
                 $pattern = '(?:'
                          . ($pre !== '' ? $pre : null)
@@ -1785,9 +1714,10 @@ class Klein
                          . '))'
                          . ($optional !== '' ? '?' : null);
 
-                $route = str_replace($block, $pattern, $route);
-            }
-        }
+                return $pattern;
+            },
+            $route
+        );
 
         $regex = "`^$route$`";
 
@@ -1805,7 +1735,6 @@ class Klein
      *
      * @param string $regex                          The regular expression to validate
      * @throws RegularExpressionCompilationException If the expression can't be compiled
-     * @access private
      * @return boolean
      */
     private function validateRegularExpression($regex)
@@ -1858,7 +1787,6 @@ class Klein
      * @param array $params             The array of placeholder fillers
      * @param boolean $flatten_regex    Optionally flatten custom regular expressions to "/"
      * @throws OutOfBoundsException     If the route requested doesn't exist
-     * @access public
      * @return string
      */
     public function getPathFor($route_name, array $params = null, $flatten_regex = true)
@@ -1873,20 +1801,29 @@ class Klein
 
         $path = $route->getPath();
 
-        if (preg_match_all(static::ROUTE_COMPILE_REGEX, $path, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
-                list($block, $pre, $inner_block, $type, $param, $optional) = $match;
+        // Use our compilation regex to reverse the path's compilation from its definition
+        $reversed_path = preg_replace_callback(
+            static::ROUTE_COMPILE_REGEX,
+            function ($match) use ($params) {
+                list($block, $pre, , $param, $optional) = $match;
 
                 if (isset($params[$param])) {
-                    $path = str_replace($block, $pre. $params[$param], $path);
+                    return $pre. $params[$param];
                 } elseif ($optional) {
-                    $path = str_replace($block, '', $path);
+                    return '';
                 }
-            }
 
-        } elseif ($flatten_regex && strpos($path, '@') === 0) {
+                return $block;
+            },
+            $path
+        );
+
+        // If the path and reversed_path are the same, the regex must have not matched/replaced
+        if ($path === $reversed_path && $flatten_regex && strpos($path, '@') === 0) {
             // If the path is a custom regular expression and we're "flattening", just return a slash
             $path = '/';
+        } else {
+            $path = $reversed_path;
         }
 
         return $path;
@@ -1900,11 +1837,10 @@ class Klein
      *
      * @param Route $route
      * @param RouteCollection $matched
-     * @param int $methods_matched
-     * @access protected
+     * @param array $methods_matched
      * @return void
      */
-    protected function handleRouteCallback(Route $route, RouteCollection $matched, $methods_matched)
+    protected function handleRouteCallback(Route $route, RouteCollection $matched, array $methods_matched)
     {
         // Handle the callback
         $returned = call_user_func(
@@ -1934,7 +1870,6 @@ class Klein
      * Adds an error callback to the stack of error handlers
      *
      * @param callable $callback            The callable function to execute in the error handling chain
-     * @access public
      * @return boolean|void
      */
     public function onError($callback)
@@ -1947,7 +1882,6 @@ class Klein
      *
      * @param Exception $err        The exception that occurred
      * @throws UnhandledException   If the error/exception isn't handled by an error callback
-     * @access protected
      * @return void
      */
     protected function error(Exception $err)
@@ -1988,7 +1922,6 @@ class Klein
      * Adds an HTTP error callback to the stack of HTTP error handlers
      *
      * @param callable $callback            The callable function to execute in the error handling chain
-     * @access public
      * @return void
      */
     public function onHttpError($callback)
@@ -2002,7 +1935,6 @@ class Klein
      * @param HttpExceptionInterface $http_exception    The exception that occurred
      * @param RouteCollection $matched                  The collection of routes that were matched in dispatch
      * @param array $methods_matched                    The HTTP methods that were matched in dispatch
-     * @access protected
      * @return void
      */
     protected function httpError(HttpExceptionInterface $http_exception, RouteCollection $matched, $methods_matched)
@@ -2049,7 +1981,6 @@ class Klein
      * is sent
      *
      * @param callable $callback            The callable function to execute in the after route chain
-     * @access public
      * @return void
      */
     public function afterDispatch($callback)
@@ -2060,7 +1991,6 @@ class Klein
     /**
      * Runs through and executes the after dispatch callbacks
      *
-     * @access protected
      * @return void
      */
     protected function callAfterDispatchCallbacks()
@@ -2091,7 +2021,6 @@ class Klein
      * Quick alias to skip the current callback/route method from executing
      *
      * @throws DispatchHaltedException To halt/skip the current dispatch loop
-     * @access public
      * @return void
      */
     public function skipThis()
@@ -2104,7 +2033,6 @@ class Klein
      *
      * @param int $num The number of next matches to skip
      * @throws DispatchHaltedException To halt/skip the current dispatch loop
-     * @access public
      * @return void
      */
     public function skipNext($num = 1)
@@ -2119,7 +2047,6 @@ class Klein
      * Quick alias to stop the remaining callbacks/route methods from executing
      *
      * @throws DispatchHaltedException To halt/skip the current dispatch loop
-     * @access public
      * @return void
      */
     public function skipRemaining()
@@ -2132,7 +2059,6 @@ class Klein
      *
      * @param int $code     Optional HTTP status code to send
      * @throws DispatchHaltedException To halt/skip the current dispatch loop
-     * @access public
      * @return void
      */
     public function abort($code = null)
@@ -2148,9 +2074,8 @@ class Klein
      * OPTIONS alias for "respond()"
      *
      * @see Klein::respond()
-     * @param string $route
+     * @param string $path
      * @param callable $callback
-     * @access public
      * @return Route
      */
     public function options($path = '*', $callback = null)
@@ -2170,7 +2095,6 @@ class Klein
      * @see Klein::respond()
      * @param string $path
      * @param callable $callback
-     * @access public
      * @return Route
      */
     public function head($path = '*', $callback = null)
@@ -2188,9 +2112,8 @@ class Klein
      * GET alias for "respond()"
      *
      * @see Klein::respond()
-     * @param string $route
+     * @param string $path
      * @param callable $callback
-     * @access public
      * @return Route
      */
     public function get($path = '*', $callback = null)
@@ -2210,7 +2133,6 @@ class Klein
      * @see Klein::respond()
      * @param string $path
      * @param callable $callback
-     * @access public
      * @return Route
      */
     public function post($path = '*', $callback = null)
@@ -2230,7 +2152,6 @@ class Klein
      * @see Klein::respond()
      * @param string $path
      * @param callable $callback
-     * @access public
      * @return Route
      */
     public function put($path = '*', $callback = null)
@@ -2250,7 +2171,6 @@ class Klein
      * @see Klein::respond()
      * @param string $path
      * @param callable $callback
-     * @access public
      * @return Route
      */
     public function delete($path = '*', $callback = null)
@@ -2273,7 +2193,6 @@ class Klein
      * @see Klein::respond()
      * @param string $path
      * @param callable $callback
-     * @access public
      * @return Route
      */
     public function patch($path = '*', $callback = null)
@@ -2296,7 +2215,7 @@ class Klein
 /* Start of src/Klein/Request.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -2313,8 +2232,6 @@ class Klein
 
 /**
  * Request
- * 
- * @package     Klein
  */
 class Request
 {
@@ -2326,72 +2243,63 @@ class Request
     /**
      * Unique identifier for the request
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $id;
 
     /**
      * GET (query) parameters
      *
-     * @var \Klein\DataCollection\DataCollection
-     * @access protected
+     * @type DataCollection
      */
     protected $params_get;
 
     /**
      * POST parameters
      *
-     * @var \Klein\DataCollection\DataCollection
-     * @access protected
+     * @type DataCollection
      */
     protected $params_post;
 
     /**
      * Named parameters
      *
-     * @var \Klein\DataCollection\DataCollection
-     * @access protected
+     * @type DataCollection
      */
     protected $params_named;
 
     /**
      * Client cookie data
      *
-     * @var \Klein\DataCollection\DataCollection
-     * @access protected
+     * @type DataCollection
      */
     protected $cookies;
 
     /**
      * Server created attributes
      *
-     * @var \Klein\DataCollection\ServerDataCollection
-     * @access protected
+     * @type ServerDataCollection
      */
     protected $server;
 
     /**
      * HTTP request headers
      *
-     * @var \Klein\DataCollection\HeaderDataCollection
-     * @access protected
+     * @type HeaderDataCollection
      */
     protected $headers;
 
     /**
      * Uploaded temporary files
      *
-     * @var \Klein\DataCollection\DataCollection
-     * @access protected
+     * @type DataCollection
      */
     protected $files;
 
     /**
      * The request body
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $body;
 
@@ -2411,7 +2319,6 @@ class Request
      * @param array  $server
      * @param array  $files
      * @param string $body
-     * @access public
      */
     public function __construct(
         array $params_get = array(),
@@ -2438,8 +2345,6 @@ class Request
      * Create a new request object using the built-in "superglobals"
      *
      * @link http://php.net/manual/en/language.variables.superglobals.php
-     * @static
-     * @access public
      * @return Request
      */
     public static function createFromGlobals()
@@ -2461,7 +2366,6 @@ class Request
      * Generates one on the first call
      *
      * @param boolean $hash     Whether or not to hash the ID on creation
-     * @access public
      * @return string
      */
     public function id($hash = true)
@@ -2480,7 +2384,6 @@ class Request
     /**
      * Returns the GET parameters collection
      *
-     * @access public
      * @return \Klein\DataCollection\DataCollection
      */
     public function paramsGet()
@@ -2491,7 +2394,6 @@ class Request
     /**
      * Returns the POST parameters collection
      *
-     * @access public
      * @return \Klein\DataCollection\DataCollection
      */
     public function paramsPost()
@@ -2502,7 +2404,6 @@ class Request
     /**
      * Returns the named parameters collection
      *
-     * @access public
      * @return \Klein\DataCollection\DataCollection
      */
     public function paramsNamed()
@@ -2513,7 +2414,6 @@ class Request
     /**
      * Returns the cookies collection
      *
-     * @access public
      * @return \Klein\DataCollection\DataCollection
      */
     public function cookies()
@@ -2524,7 +2424,6 @@ class Request
     /**
      * Returns the server collection
      *
-     * @access public
      * @return \Klein\DataCollection\DataCollection
      */
     public function server()
@@ -2535,7 +2434,6 @@ class Request
     /**
      * Returns the headers collection
      *
-     * @access public
      * @return \Klein\DataCollection\HeaderDataCollection
      */
     public function headers()
@@ -2546,7 +2444,6 @@ class Request
     /**
      * Returns the files collection
      *
-     * @access public
      * @return \Klein\DataCollection\DataCollection
      */
     public function files()
@@ -2557,7 +2454,6 @@ class Request
     /**
      * Gets the request body
      *
-     * @access public
      * @return string
      */
     public function body()
@@ -2580,7 +2476,6 @@ class Request
      * @param array $mask               The parameter mask array
      * @param boolean $fill_with_nulls  Whether or not to fill the returned array
      *  with null values to match the given mask
-     * @access public
      * @return array
      */
     public function params($mask = null, $fill_with_nulls = true)
@@ -2610,7 +2505,6 @@ class Request
      *
      * @param string $key       The name of the parameter to return
      * @param mixed $default    The default value of the parameter if it contains no value
-     * @access public
      * @return string
      */
     public function param($key, $default = null)
@@ -2628,7 +2522,6 @@ class Request
      * from this instance while treating it as an instance property
      *
      * @param string $param     The name of the parameter
-     * @access public
      * @return boolean
      */
     public function __isset($param)
@@ -2646,7 +2539,6 @@ class Request
      * while treating it as an instance property
      *
      * @param string $param     The name of the parameter
-     * @access public
      * @return string
      */
     public function __get($param)
@@ -2665,7 +2557,6 @@ class Request
      *
      * @param string $param     The name of the parameter
      * @param mixed $value      The value of the parameter
-     * @access public
      * @return void
      */
     public function __set($param, $value)
@@ -2680,7 +2571,6 @@ class Request
      * while treating it as an instance property
      *
      * @param string $param     The name of the parameter
-     * @access public
      * @return void
      */
     public function __unset($param)
@@ -2691,7 +2581,6 @@ class Request
     /**
      * Is the request secure?
      *
-     * @access public
      * @return boolean
      */
     public function isSecure()
@@ -2702,7 +2591,6 @@ class Request
     /**
      * Gets the request IP address
      *
-     * @access public
      * @return string
      */
     public function ip()
@@ -2713,7 +2601,6 @@ class Request
     /**
      * Gets the request user agent
      *
-     * @access public
      * @return string
      */
     public function userAgent()
@@ -2724,7 +2611,6 @@ class Request
     /**
      * Gets the request URI
      *
-     * @access public
      * @return string
      */
     public function uri()
@@ -2735,7 +2621,6 @@ class Request
     /**
      * Get the request's pathname
      *
-     * @access public
      * @return string
      */
     public function pathname()
@@ -2760,8 +2645,7 @@ class Request
      * 
      * @param string $is				The method to check the current request method against
      * @param boolean $allow_override	Whether or not to allow HTTP method overriding via header or params
-     * @access public
-     * @return string | boolean
+     * @return string|boolean
      */
     public function method($is = null, $allow_override = true)
     {
@@ -2792,7 +2676,6 @@ class Request
      *
      * @param string $key   The name of the query param
      * @param mixed $value  The value of the query param
-     * @access public
      * @return string
      */
     public function query($key, $value = null)
@@ -2828,7 +2711,7 @@ class Request
 /* Start of src/Klein/Response.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -2841,9 +2724,6 @@ class Request
 
 /**
  * Response 
- * 
- * @uses        AbstractResponse
- * @package     Klein
  */
 class Response extends AbstractResponse
 {
@@ -2858,7 +2738,6 @@ class Response extends AbstractResponse
      * @link https://github.com/chriso/klein.php/wiki/Response-Chunking
      * @link http://bit.ly/hg3gHb
      * @param string $str   An optional string to send as a response "chunk"
-     * @access public
      * @return Response
      */
     public function chunk($str = null)
@@ -2878,7 +2757,6 @@ class Response extends AbstractResponse
      * Dump a variable
      *
      * @param mixed $obj    The variable to dump
-     * @access public
      * @return Response
      */
     public function dump($obj)
@@ -2907,7 +2785,6 @@ class Response extends AbstractResponse
      * @param string $path      The path of the file to send
      * @param string $filename  The file's name
      * @param string $mimetype  The MIME type of the file
-     * @access public
      * @return Response
      */
     public function file($path, $filename = null, $mimetype = null)
@@ -2946,7 +2823,6 @@ class Response extends AbstractResponse
      *
      * @param mixed $object         The data to encode as JSON
      * @param string $jsonp_prefix  The name of the JSON-P function prefix
-     * @access public
      * @return Response
      */
     public function json($object, $jsonp_prefix = null)
@@ -2979,7 +2855,7 @@ class Response extends AbstractResponse
 /* Start of src/Klein/ResponseCookie.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -2994,8 +2870,6 @@ class Response extends AbstractResponse
  * ResponseCookie
  *
  * Class to represent an HTTP response cookie
- *
- * @package     Klein
  */
 class ResponseCookie
 {
@@ -3007,16 +2881,14 @@ class ResponseCookie
     /**
      * The name of the cookie
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $name;
 
     /**
      * The string "value" of the cookie
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $value;
 
@@ -3025,8 +2897,7 @@ class ResponseCookie
      *
      * Represented by a Unix "Timestamp"
      *
-     * @var int
-     * @access protected
+     * @type int
      */
     protected $expire;
 
@@ -3034,16 +2905,14 @@ class ResponseCookie
      * The path on the server that the cookie will
      * be available on
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $path;
 
     /**
      * The domain that the cookie is available to
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $domain;
 
@@ -3051,8 +2920,7 @@ class ResponseCookie
      * Whether the cookie should only be transferred
      * over an HTTPS connection or not
      *
-     * @var boolean
-     * @access protected
+     * @type boolean
      */
     protected $secure;
 
@@ -3061,8 +2929,7 @@ class ResponseCookie
      * only (not available to be accessed through
      * client-side scripting languages like JavaScript)
      *
-     * @var boolean
-     * @access protected
+     * @type boolean
      */
     protected $http_only;
 
@@ -3081,7 +2948,6 @@ class ResponseCookie
      * @param string  $domain       The domain of which to restrict the cookie
      * @param boolean $secure       Flag of whether the cookie should only be sent over a HTTPS connection
      * @param boolean $http_only    Flag of whether the cookie should only be accessible over the HTTP protocol
-     * @access public
      */
     public function __construct(
         $name,
@@ -3105,7 +2971,6 @@ class ResponseCookie
     /**
      * Gets the cookie's name
      *
-     * @access public
      * @return string
      */
     public function getName()
@@ -3117,7 +2982,6 @@ class ResponseCookie
      * Sets the cookie's name
      *
      * @param string $name
-     * @access public
      * @return ResponseCookie
      */
     public function setName($name)
@@ -3130,7 +2994,6 @@ class ResponseCookie
     /**
      * Gets the cookie's value
      *
-     * @access public
      * @return string
      */
     public function getValue()
@@ -3142,7 +3005,6 @@ class ResponseCookie
      * Sets the cookie's value
      *
      * @param string $value
-     * @access public
      * @return ResponseCookie
      */
     public function setValue($value)
@@ -3159,7 +3021,6 @@ class ResponseCookie
     /**
      * Gets the cookie's expire time
      *
-     * @access public
      * @return int
      */
     public function getExpire()
@@ -3174,7 +3035,6 @@ class ResponseCookie
      * representing a Unix timestamp
      *
      * @param int $expire
-     * @access public
      * @return ResponseCookie
      */
     public function setExpire($expire)
@@ -3191,7 +3051,6 @@ class ResponseCookie
     /**
      * Gets the cookie's path
      *
-     * @access public
      * @return string
      */
     public function getPath()
@@ -3203,7 +3062,6 @@ class ResponseCookie
      * Sets the cookie's path
      *
      * @param string $path
-     * @access public
      * @return ResponseCookie
      */
     public function setPath($path)
@@ -3220,7 +3078,6 @@ class ResponseCookie
     /**
      * Gets the cookie's domain
      *
-     * @access public
      * @return string
      */
     public function getDomain()
@@ -3232,7 +3089,6 @@ class ResponseCookie
      * Sets the cookie's domain
      *
      * @param string $domain
-     * @access public
      * @return ResponseCookie
      */
     public function setDomain($domain)
@@ -3249,7 +3105,6 @@ class ResponseCookie
     /**
      * Gets the cookie's secure only flag
      *
-     * @access public
      * @return boolean
      */
     public function getSecure()
@@ -3261,7 +3116,6 @@ class ResponseCookie
      * Sets the cookie's secure only flag
      *
      * @param boolean $secure
-     * @access public
      * @return ResponseCookie
      */
     public function setSecure($secure)
@@ -3274,7 +3128,6 @@ class ResponseCookie
     /**
      * Gets the cookie's HTTP only flag
      *
-     * @access public
      * @return boolean
      */
     public function getHttpOnly()
@@ -3286,7 +3139,6 @@ class ResponseCookie
      * Sets the cookie's HTTP only flag
      *
      * @param boolean $http_only
-     * @access public
      * @return ResponseCookie
      */
     public function setHttpOnly($http_only)
@@ -3305,7 +3157,7 @@ class ResponseCookie
 /* Start of src/Klein/Route.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -3322,8 +3174,6 @@ class ResponseCookie
  * Route
  *
  * Class to represent a route definition
- *
- * @package     Klein
  */
 class Route
 {
@@ -3338,8 +3188,7 @@ class Route
      * Any valid "callable" type is allowed
      *
      * @link http://php.net/manual/en/language.types.callable.php
-     * @var callable
-     * @access protected
+     * @type callable
      */
     protected $callback;
 
@@ -3353,8 +3202,7 @@ class Route
      * - '/posts/[:post_slug]'
      * - '/posts/[i:id]'
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $path;
 
@@ -3367,16 +3215,14 @@ class Route
      * - 'POST'
      * - array('GET', 'POST')
      *
-     * @var string|array
-     * @access protected
+     * @type string|array
      */
     protected $method;
 
     /**
      * Whether or not to count this route as a match when counting total matches
      *
-     * @var boolean
-     * @access protected
+     * @type boolean
      */
     protected $count_match;
 
@@ -3385,8 +3231,7 @@ class Route
      *
      * Mostly used for reverse routing
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $name;
 
@@ -3402,7 +3247,6 @@ class Route
      * @param string $path
      * @param string|array $method
      * @param boolean $count_match
-     * @access public
      */
     public function __construct($callback, $path = null, $method = null, $count_match = true, $name = null)
     {
@@ -3417,7 +3261,6 @@ class Route
     /**
      * Get the callback
      *
-     * @access public
      * @return callable
      */
     public function getCallback()
@@ -3430,7 +3273,6 @@ class Route
      *
      * @param callable $callback
      * @throws InvalidArgumentException If the callback isn't a callable
-     * @access public
      * @return Route
      */
     public function setCallback($callback)
@@ -3447,7 +3289,6 @@ class Route
     /**
      * Get the path
      *
-     * @access public
      * @return string
      */
     public function getPath()
@@ -3459,7 +3300,6 @@ class Route
      * Set the path
      *
      * @param string $path
-     * @access public
      * @return Route
      */
     public function setPath($path)
@@ -3472,7 +3312,6 @@ class Route
     /**
      * Get the method
      *
-     * @access public
      * @return string|array
      */
     public function getMethod()
@@ -3483,9 +3322,8 @@ class Route
     /**
      * Set the method
      *
-     * @param string|array $method
+     * @param string|array|null $method
      * @throws InvalidArgumentException If a non-string or non-array type is passed
-     * @access public
      * @return Route
      */
     public function setMethod($method)
@@ -3503,7 +3341,6 @@ class Route
     /**
      * Get the count_match
      *
-     * @access public
      * @return boolean
      */
     public function getCountMatch()
@@ -3515,7 +3352,6 @@ class Route
      * Set the count_match
      *
      * @param boolean $count_match
-     * @access public
      * @return Route
      */
     public function setCountMatch($count_match)
@@ -3528,7 +3364,6 @@ class Route
     /**
      * Get the name
      *
-     * @access public
      * @return string
      */
     public function getName()
@@ -3540,7 +3375,6 @@ class Route
      * Set the name
      *
      * @param string $name
-     * @access public
      * @return Route
      */
     public function setName($name)
@@ -3561,7 +3395,6 @@ class Route
      * Allows the ability to arbitrarily call this instance like a function
      *
      * @param mixed $args Generic arguments, magically accepted
-     * @access public
      * @return mixed
      */
     public function __invoke($args = null)
@@ -3583,7 +3416,7 @@ class Route
 /* Start of src/Klein/RouteFactory.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -3598,9 +3431,6 @@ class Route
  * RouteFactory
  *
  * The default implementation of the AbstractRouteFactory
- *
- * @uses AbstractRouteFactory
- * @package     Klein
  */
 class RouteFactory extends AbstractRouteFactory
 {
@@ -3612,7 +3442,7 @@ class RouteFactory extends AbstractRouteFactory
     /**
      * The value given to path's when they are entered as null values
      *
-     * @const string
+     * @type string
      */
     const NULL_PATH_VALUE = '*';
 
@@ -3625,7 +3455,6 @@ class RouteFactory extends AbstractRouteFactory
      * Check if the path is null or equal to our match-all, null-like value
      *
      * @param mixed $path
-     * @access protected
      * @return boolean
      */
     protected function pathIsNull($path)
@@ -3638,7 +3467,6 @@ class RouteFactory extends AbstractRouteFactory
      * as a match when counting total matches
      *
      * @param string $path
-     * @access protected
      * @return boolean
      */
     protected function shouldPathStringCauseRouteMatch($path)
@@ -3655,7 +3483,6 @@ class RouteFactory extends AbstractRouteFactory
      * It also adds the namespace in a specific part, based on the style of expression
      *
      * @param string $path
-     * @access protected
      * @return string
      */
     protected function preprocessPathString($path)
@@ -3664,7 +3491,10 @@ class RouteFactory extends AbstractRouteFactory
         $path = (null === $path) ? static::NULL_PATH_VALUE : (string) $path;
 
         // If a custom regular expression (or negated custom regex)
-        if ($this->namespace && $path[0] === '@' || ($path[0] === '!' && $path[1] === '@')) {
+        if ($this->namespace &&
+            (isset($path[0]) && $path[0] === '@') ||
+            (isset($path[0]) && $path[0] === '!' && isset($path[1]) && $path[1] === '@')
+        ) {
             // Is it negated?
             if ($path[0] === '!') {
                 $negate = true;
@@ -3706,8 +3536,6 @@ class RouteFactory extends AbstractRouteFactory
      * @param string|array $method  HTTP Method to match
      * @param boolean $count_match  Whether or not to count the route as a match when counting total matches
      * @param string $name          The name of the route
-     * @static
-     * @access public
      * @return Route
      */
     public function build($callback, $path = null, $method = null, $count_match = true, $name = null)
@@ -3729,7 +3557,7 @@ class RouteFactory extends AbstractRouteFactory
 /* Start of src/Klein/ServiceProvider.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -3747,8 +3575,6 @@ class RouteFactory extends AbstractRouteFactory
  *
  * Service provider class for handling logic extending between
  * a request's data and a response's behavior
- * 
- * @package     Klein
  */
 class ServiceProvider
 {
@@ -3760,48 +3586,42 @@ class ServiceProvider
     /**
      * The Request instance containing HTTP request data and behaviors
      *
-     * @var Request
-     * @access protected
+     * @type Request
      */
     protected $request;
 
     /**
      * The Response instance containing HTTP response data and behaviors
      *
-     * @var Response
-     * @access protected
+     * @type AbstractResponse
      */
     protected $response;
 
     /**
      * The id of the current PHP session
      *
-     * @var string
-     * @access protected
+     * @type string|boolean
      */
     protected $session_id;
 
     /**
      * The view layout
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $layout;
 
     /**
      * The view to render
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $view;
 
     /**
      * Shared data collection
      *
-     * @var \Klein\DataCollection\DataCollection
-     * @access protected
+     * @type DataCollection
      */
     protected $shared_data;
 
@@ -3815,7 +3635,6 @@ class ServiceProvider
      *
      * @param Request $request              Object containing all HTTP request data and behaviors
      * @param AbstractResponse $response    Object containing all HTTP response data and behaviors
-     * @access public
      */
     public function __construct(Request $request = null, AbstractResponse $response = null)
     {
@@ -3831,7 +3650,6 @@ class ServiceProvider
      *
      * @param Request $request              Object containing all HTTP request data and behaviors
      * @param AbstractResponse $response    Object containing all HTTP response data and behaviors
-     * @access public
      * @return ServiceProvider
      */
     public function bind(Request $request = null, AbstractResponse $response = null)
@@ -3846,7 +3664,6 @@ class ServiceProvider
     /**
      * Returns the shared data collection object
      *
-     * @access public
      * @return \Klein\DataCollection\DataCollection
      */
     public function sharedData()
@@ -3859,7 +3676,6 @@ class ServiceProvider
      *
      * This will start a session if the current session id is null
      *
-     * @access public
      * @return string|false
      */
     public function startSession()
@@ -3880,7 +3696,6 @@ class ServiceProvider
      * @param string $msg       The message to flash
      * @param string $type      The flash message type
      * @param array $params     Optional params to be parsed by markdown
-     * @access public
      * @return void
      */
     public function flash($msg, $type = 'info', $params = null)
@@ -3902,25 +3717,27 @@ class ServiceProvider
      * Returns and clears all flashes of optional $type
      *
      * @param string $type  The name of the flash message type
-     * @access public
      * @return array
      */
     public function flashes($type = null)
     {
         $this->startSession();
+
         if (!isset($_SESSION['__flashes'])) {
             return array();
         }
+
         if (null === $type) {
             $flashes = $_SESSION['__flashes'];
             unset($_SESSION['__flashes']);
-        } elseif (null !== $type) {
+        } else {
             $flashes = array();
             if (isset($_SESSION['__flashes'][$type])) {
                 $flashes = $_SESSION['__flashes'][$type];
                 unset($_SESSION['__flashes'][$type]);
             }
         }
+
         return $flashes;
     }
 
@@ -3934,8 +3751,6 @@ class ServiceProvider
      *
      * @param string $str   The text string to parse
      * @param array $args   Optional arguments to be parsed by markdown
-     * @static
-     * @access public
      * @return string
      */
     public static function markdown($str, $args = null)
@@ -3976,8 +3791,6 @@ class ServiceProvider
      *
      * @param string $str   The string to escape
      * @param int $flags    A bitmask of `htmlentities()` compatible flags
-     * @static
-     * @access public
      * @return string
      */
     public static function escape($str, $flags = ENT_QUOTES)
@@ -3988,7 +3801,6 @@ class ServiceProvider
     /**
      * Redirects the request to the current URL
      *
-     * @access public
      * @return ServiceProvider
      */
     public function refresh()
@@ -4003,7 +3815,6 @@ class ServiceProvider
     /**
      * Redirects the request back to the referrer
      *
-     * @access public
      * @return ServiceProvider
      */
     public function back()
@@ -4011,10 +3822,10 @@ class ServiceProvider
         $referer = $this->request->server()->get('HTTP_REFERER');
 
         if (null !== $referer) {
-            return $this->response->redirect($referer);
+            $this->response->redirect($referer);
+        } else {
+            $this->refresh();
         }
-
-        $this->refresh();
 
         return $this;
     }
@@ -4026,7 +3837,6 @@ class ServiceProvider
      * Calling with an argument, however, sets the layout to what was provided by the argument.
      *
      * @param string $layout    The layout of the view
-     * @access public
      * @return string|ServiceProvider
      */
     public function layout($layout = null)
@@ -4043,7 +3853,6 @@ class ServiceProvider
     /**
      * Renders the current view
      *
-     * @access public
      * @return void
      */
     public function yieldView()
@@ -4056,7 +3865,6 @@ class ServiceProvider
      *
      * @param string $view  The view to render
      * @param array $data   The data to render in the view
-     * @access public
      * @return void
      */
     public function render($view, array $data = array())
@@ -4088,7 +3896,6 @@ class ServiceProvider
      *
      * @param string $view  The view to render
      * @param array $data   The data to render in the view
-     * @access public
      * @return void
      */
     public function partial($view, array $data = array())
@@ -4104,7 +3911,6 @@ class ServiceProvider
      *
      * @param string $method        The name of the validator method
      * @param callable $callback    The callback to perform on validation
-     * @access public
      * @return void
      */
     public function addValidator($method, $callback)
@@ -4117,7 +3923,6 @@ class ServiceProvider
      *
      * @param string $string    The string to validate
      * @param string $err       The custom exception message to throw
-     * @access public
      * @return Validator
      */
     public function validate($string, $err = null)
@@ -4130,7 +3935,6 @@ class ServiceProvider
      *
      * @param string $param     The name of the parameter to validate
      * @param string $err       The custom exception message to throw
-     * @access public
      * @return Validator
      */
     public function validateParam($param, $err = null)
@@ -4146,7 +3950,6 @@ class ServiceProvider
      * from this instance while treating it as an instance property
      *
      * @param string $key     The name of the shared data
-     * @access public
      * @return boolean
      */
     public function __isset($key)
@@ -4161,7 +3964,6 @@ class ServiceProvider
      * while treating it as an instance property
      *
      * @param string $key     The name of the shared data
-     * @access public
      * @return string
      */
     public function __get($key)
@@ -4177,7 +3979,6 @@ class ServiceProvider
      *
      * @param string $key     The name of the shared data
      * @param mixed $value      The value of the shared data
-     * @access public
      * @return void
      */
     public function __set($key, $value)
@@ -4192,7 +3993,6 @@ class ServiceProvider
      * while treating it as an instance property
      *
      * @param string $key     The name of the shared data
-     * @access public
      * @return void
      */
     public function __unset($key)
@@ -4209,7 +4009,7 @@ class ServiceProvider
 /* Start of src/Klein/Validator.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -4223,11 +4023,8 @@ class ServiceProvider
 
 
 
-
 /**
  * Validator 
- * 
- * @package    Klein
  */
 class Validator
 {
@@ -4239,34 +4036,28 @@ class Validator
     /**
      * The available validator methods
      *
-     * @static
-     * @var array
-     * @access protected
+     * @type array
      */
     public static $methods = array();
 
     /**
      * The string to validate
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $str;
 
     /**
      * The custom exception message to throw on validation failure
      *
-     * @var string
-     * @access protected
+     * @type string
      */
     protected $err;
 
     /**
      * Flag for whether the default validation methods have been added or not
      *
-     * @static
-     * @var boolean
-     * @access protected
+     * @type boolean
      */
     protected static $defaultAdded = false;
 
@@ -4280,7 +4071,6 @@ class Validator
      *
      * @param string $str   The string to validate
      * @param string $err   The optional custom exception message to throw on validation failure
-     * @access public
      */
     public function __construct($str, $err = null)
     {
@@ -4295,8 +4085,6 @@ class Validator
     /**
      * Adds default validators on first use
      *
-     * @static
-     * @access public
      * @return void
      */
     public static function addDefault()
@@ -4350,8 +4138,6 @@ class Validator
      *
      * @param string $method        The name of the validator method
      * @param callable $callback    The callback to perform on validation
-     * @static
-     * @access public
      * @return void
      */
     public static function addValidator($method, $callback)
@@ -4365,12 +4151,11 @@ class Validator
      * Allows the ability to arbitrarily call a validator with an optional prefix
      * of "is" or "not" by simply calling an instance property like a callback
      *
-     * @param callable $method          The callable method to execute
+     * @param string $method            The callable method to execute
      * @param array $args               The argument array to pass to our callback
      * @throws BadMethodCallException   If an attempt was made to call a validator modifier that doesn't exist
      * @throws ValidationException      If the validation check returns false
-     * @access public
-     * @return Validator
+     * @return Validator|boolean
      */
     public function __call($method, $args)
     {
@@ -4442,7 +4227,7 @@ use Klein\Route;
 /* Start of src/Klein/DataCollection/DataCollection.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -4466,11 +4251,6 @@ use Klein\Route;
  *
  * Inspired by @fabpot's Symfony 2's HttpFoundation
  * @link https://github.com/symfony/HttpFoundation/blob/master/ParameterBag.php
- *
- * @uses        IteratorAggregate
- * @uses        ArrayAccess
- * @uses        Countable
- * @package     Klein\DataCollection
  */
 class DataCollection implements IteratorAggregate, ArrayAccess, Countable
 {
@@ -4482,8 +4262,7 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
     /**
      * Collection of data attributes
      *
-     * @var array
-     * @access protected
+     * @type array
      */
     protected $attributes = array();
 
@@ -4496,7 +4275,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * Constructor
      *
      * @param array $attributes The data attributes of this collection
-     * @access public
      */
     public function __construct(array $attributes = array())
     {
@@ -4512,7 +4290,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * @param array $mask               The parameter mask array
      * @param boolean $fill_with_nulls  Whether or not to fill the returned array with
      *  values to match the given mask, even if they don't exist in the collection
-     * @access public
      * @return array
      */
     public function keys($mask = null, $fill_with_nulls = true)
@@ -4555,7 +4332,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * @param array $mask               The parameter mask array
      * @param boolean $fill_with_nulls  Whether or not to fill the returned array with
      *  values to match the given mask, even if they don't exist in the collection
-     * @access public
      * @return array
      */
     public function all($mask = null, $fill_with_nulls = true)
@@ -4596,7 +4372,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      *
      * @param string $key           The name of the parameter to return
      * @param mixed  $default_val   The default value of the parameter if it contains no value
-     * @access public
      * @return mixed
      */
     public function get($key, $default_val = null)
@@ -4613,7 +4388,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      *
      * @param string $key   The name of the parameter to set
      * @param mixed  $value The value of the parameter to set
-     * @access public
      * @return DataCollection
      */
     public function set($key, $value)
@@ -4627,7 +4401,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * Replace the collection's attributes
      *
      * @param array $attributes The attributes to replace the collection's with
-     * @access public
      * @return DataCollection
      */
     public function replace(array $attributes = array())
@@ -4646,7 +4419,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      *
      * @param array $attributes The attributes to merge into the collection
      * @param boolean $hard     Whether or not to make the merge "hard"
-     * @access public
      * @return DataCollection
      */
     public function merge(array $attributes = array(), $hard = false)
@@ -4674,7 +4446,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * See if an attribute exists in the collection
      *
      * @param string $key   The name of the parameter
-     * @access public
      * @return boolean
      */
     public function exists($key)
@@ -4687,7 +4458,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * Remove an attribute from the collection
      *
      * @param string $key   The name of the parameter
-     * @access public
      * @return void
      */
     public function remove($key)
@@ -4700,7 +4470,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      *
      * Semantic alias of a no-argument `$this->replace` call
      *
-     * @access public
      * @return DataCollection
      */
     public function clear()
@@ -4711,7 +4480,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
     /**
      * Check if the collection is empty
      *
-     * @access public
      * @return boolean
      */
     public function isEmpty()
@@ -4723,7 +4491,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * A quick convenience method to get an empty clone of the
      * collection. Great for dependency injection. :)
      *
-     * @access public
      * @return DataCollection
      */
     public function cloneEmpty()
@@ -4747,7 +4514,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      *
      * @see get()
      * @param string $key   The name of the parameter to return
-     * @access public
      * @return mixed
      */
     public function __get($key)
@@ -4764,7 +4530,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * @see set()
      * @param string $key   The name of the parameter to set
      * @param mixed  $value The value of the parameter to set
-     * @access public
      * @return void
      */
     public function __set($key, $value)
@@ -4780,7 +4545,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      *
      * @see exists()
      * @param string $key   The name of the parameter
-     * @access public
      * @return boolean
      */
     public function __isset($key)
@@ -4796,7 +4560,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      *
      * @see remove()
      * @param string $key   The name of the parameter
-     * @access public
      * @return void
      */
     public function __unset($key)
@@ -4815,7 +4578,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * IteratorAggregate interface required method
      *
      * @see \IteratorAggregate::getIterator()
-     * @access public
      * @return ArrayIterator
      */
     public function getIterator()
@@ -4831,7 +4593,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * @see \ArrayAccess::offsetGet()
      * @see get()
      * @param string $key   The name of the parameter to return
-     * @access public
      * @return mixed
      */
     public function offsetGet($key)
@@ -4848,7 +4609,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * @see set()
      * @param string $key   The name of the parameter to set
      * @param mixed  $value The value of the parameter to set
-     * @access public
      * @return void
      */
     public function offsetSet($key, $value)
@@ -4864,7 +4624,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * @see \ArrayAccess::offsetExists()
      * @see exists()
      * @param string $key   The name of the parameter
-     * @access public
      * @return boolean
      */
     public function offsetExists($key)
@@ -4880,7 +4639,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * @see \ArrayAccess::offsetUnset()
      * @see remove()
      * @param string $key   The name of the parameter
-     * @access public
      * @return void
      */
     public function offsetUnset($key)
@@ -4895,7 +4653,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
      * to simply count the number of attributes in the collection.
      *
      * @see \Countable::count()
-     * @access public
      * @return int
      */
     public function count()
@@ -4912,7 +4669,7 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
 /* Start of src/Klein/DataCollection/HeaderDataCollection.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -4927,9 +4684,6 @@ class DataCollection implements IteratorAggregate, ArrayAccess, Countable
  * HeaderDataCollection
  *
  * A DataCollection for HTTP headers
- *
- * @uses        DataCollection
- * @package     Klein\DataCollection
  */
 class HeaderDataCollection extends DataCollection
 {
@@ -4943,7 +4697,6 @@ class HeaderDataCollection extends DataCollection
      *
      * @override (doesn't call our parent)
      * @param array $headers The headers of this collection
-     * @access public
      */
     public function __construct(array $headers = array())
     {
@@ -4960,7 +4713,6 @@ class HeaderDataCollection extends DataCollection
      * @see DataCollection::get()
      * @param string $key           The name of the header to return
      * @param mixed  $default_val   The default value of the header if it contains no value
-     * @access public
      * @return mixed
      */
     public function get($key, $default_val = null)
@@ -4978,7 +4730,6 @@ class HeaderDataCollection extends DataCollection
      * @see DataCollection::set()
      * @param string $key   The name of the header to set
      * @param mixed  $value The value of the header to set
-     * @access public
      * @return HeaderDataCollection
      */
     public function set($key, $value)
@@ -4995,7 +4746,6 @@ class HeaderDataCollection extends DataCollection
      *
      * @see DataCollection::exists()
      * @param string $key   The name of the header
-     * @access public
      * @return boolean
      */
     public function exists($key)
@@ -5012,7 +4762,6 @@ class HeaderDataCollection extends DataCollection
      *
      * @see DataCollection::remove()
      * @param string $key   The name of the header
-     * @access public
      * @return void
      */
     public function remove($key)
@@ -5031,8 +4780,6 @@ class HeaderDataCollection extends DataCollection
      * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
      * @param string $name              The name ("field") of the header
      * @param boolean $make_lowercase   Whether or not to lowercase the name
-     * @static
-     * @access public
      * @return string
      */
     public static function normalizeName($name, $make_lowercase = true)
@@ -5062,7 +4809,7 @@ class HeaderDataCollection extends DataCollection
 /* Start of src/Klein/DataCollection/ResponseCookieDataCollection.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5079,9 +4826,6 @@ class HeaderDataCollection extends DataCollection
  * ResponseCookieDataCollection
  *
  * A DataCollection for HTTP response cookies
- *
- * @uses        DataCollection
- * @package     Klein\DataCollection
  */
 class ResponseCookieDataCollection extends DataCollection
 {
@@ -5095,7 +4839,6 @@ class ResponseCookieDataCollection extends DataCollection
      *
      * @override (doesn't call our parent)
      * @param array $cookies The cookies of this collection
-     * @access public
      */
     public function __construct(array $cookies = array())
     {
@@ -5121,7 +4864,6 @@ class ResponseCookieDataCollection extends DataCollection
      * @see DataCollection::set()
      * @param string $key                   The name of the cookie to set
      * @param ResponseCookie|string $value  The value of the cookie to set
-     * @access public
      * @return ResponseCookieDataCollection
      */
     public function set($key, $value)
@@ -5142,7 +4884,7 @@ class ResponseCookieDataCollection extends DataCollection
 /* Start of src/Klein/DataCollection/RouteCollection.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5159,9 +4901,6 @@ class ResponseCookieDataCollection extends DataCollection
  * RouteCollection
  *
  * A DataCollection for Routes
- *
- * @uses        DataCollection
- * @package     Klein\DataCollection
  */
 class RouteCollection extends DataCollection
 {
@@ -5175,7 +4914,6 @@ class RouteCollection extends DataCollection
      *
      * @override (doesn't call our parent)
      * @param array $routes The routes of this collection
-     * @access public
      */
     public function __construct(array $routes = array())
     {
@@ -5200,7 +4938,6 @@ class RouteCollection extends DataCollection
      * @see DataCollection::set()
      * @param string $key                   The name of the route to set
      * @param Route|callable $value         The value of the route to set
-     * @access public
      * @return RouteCollection
      */
     public function set($key, $value)
@@ -5218,7 +4955,6 @@ class RouteCollection extends DataCollection
      * This will auto-generate a name
      *
      * @param Route $route
-     * @access public
      * @return RouteCollection
      */
     public function addRoute(Route $route)
@@ -5240,8 +4976,7 @@ class RouteCollection extends DataCollection
      * will take a Route instance, string callable
      * or any other Route class compatible callback
      *
-     * @param mixed $route
-     * @access public
+     * @param Route|callable $route
      * @return RouteCollection
      */
     public function add($route)
@@ -5263,7 +4998,6 @@ class RouteCollection extends DataCollection
      * Thankfully, because routes are all objects, this doesn't
      * take much memory as its simply moving references around
      *
-     * @access public
      * @return RouteCollection
      */
     public function prepareNamed()
@@ -5297,7 +5031,7 @@ class RouteCollection extends DataCollection
 /* Start of src/Klein/DataCollection/ServerDataCollection.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5317,9 +5051,6 @@ class RouteCollection extends DataCollection
  *
  * Inspired by @fabpot's Symfony 2's HttpFoundation
  * @link https://github.com/symfony/HttpFoundation/blob/master/ServerBag.php
- *
- * @uses DataCollection
- * @package     Klein\DataCollection
  */
 class ServerDataCollection extends DataCollection
 {
@@ -5332,9 +5063,7 @@ class ServerDataCollection extends DataCollection
      * The prefix of HTTP headers normally
      * stored in the Server data
      *
-     * @static
-     * @var string
-     * @access protected
+     * @type string
      */
     protected static $http_header_prefix = 'HTTP_';
 
@@ -5342,9 +5071,7 @@ class ServerDataCollection extends DataCollection
      * The list of HTTP headers that for some
      * reason aren't prefixed in PHP...
      *
-     * @static
-     * @var string
-     * @access protected
+     * @type array
      */
     protected static $http_nonprefixed_headers = array(
         'CONTENT_LENGTH',
@@ -5362,8 +5089,6 @@ class ServerDataCollection extends DataCollection
      *
      * @param string $string    The string to check
      * @param string $prefix    The prefix to test
-     * @static
-     * @access public
      * @return boolean
      */
     public static function hasPrefix($string, $prefix)
@@ -5381,7 +5106,6 @@ class ServerDataCollection extends DataCollection
      * PHP is weird... it puts all of the HTTP request
      * headers in the $_SERVER array. This handles that
      *
-     * @access public
      * @return array
      */
     public function getHeaders()
@@ -5425,7 +5149,7 @@ use UnexpectedValueException;
 /* Start of src/Klein/Exceptions/HttpExceptionInterface.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5440,8 +5164,6 @@ use UnexpectedValueException;
  * HttpExceptionInterface
  *
  * An interface for type-hinting generic HTTP errors
- *
- * @package    Klein\Exceptions
  */
 interface HttpExceptionInterface extends KleinExceptionInterface
 {
@@ -5455,7 +5177,7 @@ interface HttpExceptionInterface extends KleinExceptionInterface
 /* Start of src/Klein/Exceptions/KleinExceptionInterface.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5475,8 +5197,6 @@ interface HttpExceptionInterface extends KleinExceptionInterface
  * that can be type-hinted/instance-checked against, therefore making it
  * easier to handle Klein exceptions while still allowing the different
  * exception classes to properly extend the corresponding SPL Exception type
- *
- * @package    Klein\Exceptions
  */
 interface KleinExceptionInterface
 {
@@ -5490,7 +5210,7 @@ interface KleinExceptionInterface
 /* Start of src/Klein/Exceptions/DispatchHaltedException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5507,9 +5227,6 @@ interface KleinExceptionInterface
  * DispatchHaltedException
  *
  * Exception used to halt a route callback from executing in a dispatch loop
- * 
- * @uses       RuntimeException
- * @package    Klein\Exceptions
  */
 class DispatchHaltedException extends RuntimeException implements KleinExceptionInterface
 {
@@ -5521,21 +5238,21 @@ class DispatchHaltedException extends RuntimeException implements KleinException
     /**
      * Skip this current match/callback
      *
-     * @const int
+     * @type int
      */
     const SKIP_THIS = 1;
 
     /**
      * Skip the next match/callback
      *
-     * @const int
+     * @type int
      */
     const SKIP_NEXT = 2;
 
     /**
      * Skip the rest of the matches
      *
-     * @const int
+     * @type int
      */
     const SKIP_REMAINING = 0;
 
@@ -5547,8 +5264,7 @@ class DispatchHaltedException extends RuntimeException implements KleinException
     /**
      * The number of next matches to skip on a "next" skip
      *
-     * @var int
-     * @access protected
+     * @type int
      */
     protected $number_of_skips = 1;
 
@@ -5571,7 +5287,6 @@ class DispatchHaltedException extends RuntimeException implements KleinException
      * Sets the number of matches to skip on a "next" skip
      *
      * @param int $number_of_skips
-     * @access public
      * @return DispatchHaltedException
      */
     public function setNumberOfSkips($number_of_skips)
@@ -5590,7 +5305,7 @@ class DispatchHaltedException extends RuntimeException implements KleinException
 /* Start of src/Klein/Exceptions/DuplicateServiceException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5607,9 +5322,6 @@ class DispatchHaltedException extends RuntimeException implements KleinException
  * DuplicateServiceException
  *
  * Exception used for when a service is attempted to be registered that already exists
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
  */
 class DuplicateServiceException extends OverflowException implements KleinExceptionInterface
 {
@@ -5623,7 +5335,7 @@ class DuplicateServiceException extends OverflowException implements KleinExcept
 /* Start of src/Klein/Exceptions/HttpException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5640,9 +5352,6 @@ class DuplicateServiceException extends OverflowException implements KleinExcept
  * HttpException
  *
  * An HTTP error exception
- * 
- * @uses       RuntimeException
- * @package    Klein\Exceptions
  */
 class HttpException extends RuntimeException implements HttpExceptionInterface
 {
@@ -5655,8 +5364,6 @@ class HttpException extends RuntimeException implements HttpExceptionInterface
      * Create an HTTP exception from nothing but an HTTP code
      *
      * @param int $code
-     * @static
-     * @access public
      * @return HttpException
      */
     public static function createFromCode($code)
@@ -5673,7 +5380,7 @@ class HttpException extends RuntimeException implements HttpExceptionInterface
 /* Start of src/Klein/Exceptions/LockedResponseException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5690,9 +5397,6 @@ class HttpException extends RuntimeException implements HttpExceptionInterface
  * LockedResponseException
  *
  * Exception used for when a response is attempted to be modified while its locked
- * 
- * @uses       RuntimeException
- * @package    Klein\Exceptions
  */
 class LockedResponseException extends RuntimeException implements KleinExceptionInterface
 {
@@ -5706,7 +5410,7 @@ class LockedResponseException extends RuntimeException implements KleinException
 /* Start of src/Klein/Exceptions/RegularExpressionCompilationException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5723,9 +5427,6 @@ class LockedResponseException extends RuntimeException implements KleinException
  * RegularExpressionCompilationException
  *
  * Exception used for when a regular expression fails to compile
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
  */
 class RegularExpressionCompilationException extends RuntimeException implements KleinExceptionInterface
 {
@@ -5739,7 +5440,7 @@ class RegularExpressionCompilationException extends RuntimeException implements 
 /* Start of src/Klein/Exceptions/ResponseAlreadySentException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5756,9 +5457,6 @@ class RegularExpressionCompilationException extends RuntimeException implements 
  * ResponseAlreadySentException
  *
  * Exception used for when a response is attempted to be sent after its already been sent
- * 
- * @uses       RuntimeException
- * @package    Klein\Exceptions
  */
 class ResponseAlreadySentException extends RuntimeException implements KleinExceptionInterface
 {
@@ -5772,7 +5470,7 @@ class ResponseAlreadySentException extends RuntimeException implements KleinExce
 /* Start of src/Klein/Exceptions/RoutePathCompilationException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5791,9 +5489,6 @@ class ResponseAlreadySentException extends RuntimeException implements KleinExce
  * RoutePathCompilationException
  *
  * Exception used for when a route's path fails to compile
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
  */
 class RoutePathCompilationException extends RuntimeException implements KleinExceptionInterface
 {
@@ -5805,14 +5500,14 @@ class RoutePathCompilationException extends RuntimeException implements KleinExc
     /**
      * The exception message format
      *
-     * @const string
+     * @type string
      */
     const MESSAGE_FORMAT = 'Route failed to compile with path "%s".';
 
     /**
      * The extra failure message format
      *
-     * @const string
+     * @type string
      */
     const FAILURE_MESSAGE_TITLE_FORMAT = 'Failed with message: "%s"';
 
@@ -5824,8 +5519,7 @@ class RoutePathCompilationException extends RuntimeException implements KleinExc
     /**
      * The route that failed to compile
      *
-     * @var Route
-     * @access protected
+     * @type Route
      */
     protected $route;
 
@@ -5840,8 +5534,6 @@ class RoutePathCompilationException extends RuntimeException implements KleinExc
      *
      * @param Route $route          The route that failed to compile
      * @param Exception $previous   The previous exception
-     * @static
-     * @access public
      * @return RoutePathCompilationException
      */
     public static function createFromRoute(Route $route, Exception $previous = null)
@@ -5892,7 +5584,7 @@ class RoutePathCompilationException extends RuntimeException implements KleinExc
 /* Start of src/Klein/Exceptions/UnhandledException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5909,9 +5601,6 @@ class RoutePathCompilationException extends RuntimeException implements KleinExc
  * UnhandledException
  *
  * Exception used for when a exception isn't correctly handled by the Klein error callbacks
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
  */
 class UnhandledException extends RuntimeException implements KleinExceptionInterface
 {
@@ -5925,7 +5614,7 @@ class UnhandledException extends RuntimeException implements KleinExceptionInter
 /* Start of src/Klein/Exceptions/UnknownServiceException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5942,9 +5631,6 @@ class UnhandledException extends RuntimeException implements KleinExceptionInter
  * UnknownServiceException
  *
  * Exception used for when a service was called that doesn't exist
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
  */
 class UnknownServiceException extends OutOfBoundsException implements KleinExceptionInterface
 {
@@ -5958,7 +5644,7 @@ class UnknownServiceException extends OutOfBoundsException implements KleinExcep
 /* Start of src/Klein/Exceptions/ValidationException.php */
 
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -5975,9 +5661,6 @@ class UnknownServiceException extends OutOfBoundsException implements KleinExcep
  * ValidationException 
  *
  * Exception used for Validation errors
- * 
- * @uses       Exception
- * @package    Klein\Exceptions
  */
 class ValidationException extends UnexpectedValueException implements KleinExceptionInterface
 {

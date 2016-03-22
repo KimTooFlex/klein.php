@@ -1,6 +1,6 @@
 <?php
 /**
- * Klein (klein.php) - A lightning fast router for PHP
+ * Klein (klein.php) - A fast & flexible router for PHP
  *
  * @author      Chris O'Hara <cohara87@gmail.com>
  * @author      Trevor Suarez (Rican7) (contributor and v2 refactorer)
@@ -11,14 +11,11 @@
 
 namespace Klein\Tests;
 
-use Klein\RouteFactory;
 use Klein\Route;
+use Klein\RouteFactory;
 
 /**
  * RouteFactoryTest
- *
- * @uses AbstractKleinTest
- * @package Klein\Tests
  */
 class RouteFactoryTest extends AbstractKleinTest
 {
@@ -53,7 +50,7 @@ class RouteFactoryTest extends AbstractKleinTest
         $should_match = true
     ) {
         // Test data
-        $test_path = $test_path ?: '/test';
+        $test_path = is_string($test_path) ? $test_path : '/test';
         $test_callable = $this->getTestCallable();
 
 
@@ -100,6 +97,15 @@ class RouteFactoryTest extends AbstractKleinTest
         $test_namespace = '/users';
 
         $this->testBuildBasic($test_namespace, null, false);
+    }
+
+    public function testBuildWithNamespacedEmptyPath()
+    {
+        // Test data
+        $test_namespace = '/users';
+        $test_path = '';
+
+        $this->testBuildBasic($test_namespace, $test_path, false, true);
     }
 
     public function testBuildWithCustomRegexPath()
