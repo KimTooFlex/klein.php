@@ -235,6 +235,7 @@ abstract class KleinExtController {
 
 /**
  * Useful helpers:
+ * $rs->e(): shortcut for htmlspecialchars()
  * $rs->h(): shortcut for htmlspecialchars_decode()
  * $rs->renderJSON()
  * $rs->urlScheme(): http|https
@@ -245,6 +246,7 @@ abstract class KleinExtController {
  * $rs->redirect(): handle getenv("BASE_URL")
  */
 respondExt(function( _Request $rq, _Response $rs, _App $ap){
+    $rs->e = function($s) { return htmlspecialchars($s, ENT_QUOTES, "UTF-8"); };
     $rs->h = function($s) { return htmlspecialchars_decode($s, ENT_QUOTES); };
 
     /**
