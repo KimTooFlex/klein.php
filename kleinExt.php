@@ -116,12 +116,20 @@ function withExt($namespace, $routes) {
  * Honor BASE_URL environment variable, then call Klein's dispatch()
  */
 function dispatchExt($uri = null, $req_method = null, array $params = null, $capture = false) {
+    if (!isset($GLOBALS["KLEINEXT_BASE_URL"])) {
+        $GLOBALS["KLEINEXT_BASE_URL"] = strlen(getenv("BASE_URL")) ? getenv("BASE_URL") :
+            ( isset($_SERVER["BASE_URL"])                          ? $_SERVER["BASE_URL"] :
+            ( isset($_SERVER["REDIRECT_BASE_URL"])                 ? $_SERVER["REDIRECT_BASE_URL"] :
+            ( isset($_SERVER["REDIRECT_REDIRECT_BASE_URL"])        ? $_SERVER["REDIRECT_REDIRECT_BASE_URL"] :
+            "" )));
+    }
+
     if (null === $uri) {
         if (!isset($_SERVER['REQUEST_URI'])) {
             // no request : don't do anything
             return;
         }
-        $uri = substr($_SERVER['REQUEST_URI'], strlen(getenv("BASE_URL")));
+        $uri = substr($_SERVER['REQUEST_URI'], strlen($GLOBALS["KLEINEXT_BASE_URL"]));
     }
     // remove parameters and trailing /
     if (false !== strpos($uri, '?')) {
@@ -193,7 +201,7 @@ function getUrlExt() {
     $ret = str_replace('//', '/', $ret);
     $ret = str_replace('//', '/', $ret);
 
-    return getenv("BASE_URL") . $ret;
+    return $GLOBALS["KLEINEXT_BASE_URL"] . $ret;
 }
 
 /**
@@ -240,10 +248,10 @@ abstract class KleinExtController {
  * $rs->renderJSON()
  * $rs->urlScheme(): http|https
  * $rs->urlHostname(): host part of the url
- * $rs->urlBase($url): getenv("BASE_URL") . $url
+ * $rs->urlBase($url): $GLOBALS["KLEINEXT_BASE_URL"] . $url
  * $rs->urlPrefix($url): returns "[scheme]://[hostname]/$url"
  * $rs->isAjax()
- * $rs->redirect(): handle getenv("BASE_URL")
+ * $rs->redirect(): handle $GLOBALS["KLEINEXT_BASE_URL"]
  */
 respondExt(function( _Request $rq, _Response $rs, _App $ap){
     $rs->e = function($s) { return htmlspecialchars($s, ENT_QUOTES, "UTF-8"); };
@@ -356,7 +364,7 @@ respondExt(function( _Request $rq, _Response $rs, _App $ap){
     };
 
     $rs->urlBase = function($url = '') {
-        return getenv("BASE_URL") . $url;
+        return $GLOBALS["KLEINEXT_BASE_URL"] . $url;
     };
 
     $rs->urlScheme = function() {
@@ -379,8 +387,8 @@ respondExt(function( _Request $rq, _Response $rs, _App $ap){
 
     $rs->redirect = function($url, $code = 302, $exit_after_redirect = true) {
         // Redirects the request to another URL
-        if ((substr($url, 0,7) !== 'http://') && (substr($url, 0,8) !== 'https://') && (substr($url, 0, strlen(getenv("BASE_URL"))) !== getenv("BASE_URL"))) {
-            $url = getenv("BASE_URL") . $url;
+        if ((substr($url, 0,7) !== 'http://') && (substr($url, 0,8) !== 'https://') && (substr($url, 0, strlen($GLOBALS["KLEINEXT_BASE_URL"])) !== $GLOBALS["KLEINEXT_BASE_URL"])) {
+            $url = $GLOBALS["KLEINEXT_BASE_URL"] . $url;
         }
         $this->code($code);
         $this->header("Location: $url");
